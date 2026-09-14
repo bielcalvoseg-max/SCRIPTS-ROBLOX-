@@ -1,0 +1,691 @@
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+    Name = "METRÓPOLES RP | HUD",
+    LoadingTitle = "METRÓPOLES RP | HUD",
+    LoadingSubtitle = "Créditos: Bielcalvokkj",
+    ConfigurationSaving = {
+        Enabled = false
+    },
+    Discord = {
+        Enabled = false
+    },
+    KeySystem = false
+})
+
+local Config = {
+    Aimbot = false,
+    Smoothness = 0.6,
+    FOV = 130,
+    TeamCheck = false,
+    IgnoreUnarmed = false,
+    SpecificTarget = "Nenhum (Mais Próximo)",
+    NoRecoil = true,
+    PlayerESP = false,
+    VehicleESP = false,
+    CarGodMode = false,
+    CarSpeed = false,
+    CarSpeedVal = 120,
+    TempLocName = "",
+    SelectedLocation = "Nenhum"
+}
+
+local SavedLocations = {}
+
+-- Container Seguro de Interface
+local ESPGui = Instance.new("ScreenGui")
+ESPGui.Name = "Hub_Secure_ESP"
+ESPGui.ResetOnSpawn = false
+ESPGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Círculo FOV
+local FOVCircle = Instance.new("Frame")
+FOVCircle.Name = "Circle"
+FOVCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+FOVCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
+FOVCircle.Size = UDim2.new(0, Config.FOV * 2, 0, Config.FOV * 2)
+FOVCircle.BackgroundTransparency = 1
+FOVCircle.Visible = false
+FOVCircle.Parent = ESPGui
+
+local Corner = Instance.new("UICorner")
+Corner.CornerRadius = UDim.new(1, 0)
+Corner.Parent = FOVCircle
+
+local Stroke = Instance.new("UIStroke")
+Stroke.Color = Color3.fromRGB(255, 255, 255)
+Stroke.Thickness = 1.5
+Stroke.Transparency = 0.2
+Stroke.Parent = FOVCircle
+
+-- Radar de Proximidade (Sem Fundo)
+local RadarFrame = Instance.new("Frame")
+RadarFrame.Name = "NearbyRadar"
+RadarFrame.Size = UDim2.new(0, 200, 0, 110)
+RadarFrame.Position = UDim2.new(1, -210, 0, 25)
+RadarFrame.BackgroundTransparency = 1
+RadarFrame.BorderSizePixel = 0
+RadarFrame.Parent = ESPGui
+
+local RadarTitle = Instance.new("TextLabel")
+RadarTitle.Size = UDim2.new(1, 0, 0, 20)
+RadarTitle.BackgroundTransparency = 1
+RadarTitle.Text = "⚠️ PRÓXIMOS (< 60m)"
+RadarTitle.TextColor3 = Color3.fromRGB(255, 205, 50)
+RadarTitle.Font = Enum.Font.GothamBold
+RadarTitle.TextSize = 12
+RadarTitle.TextStrokeTransparency = 0.3
+RadarTitle.TextXAlignment = Enum.TextXAlignment.Left
+RadarTitle.Parent = RadarFrame
+
+local RadarLabel = Instance.new("TextLabel")
+RadarLabel.Size = UDim2.new(1, 0, 1, -22)
+RadarLabel.Position = UDim2.new(0, 0, 0, 22)
+RadarLabel.BackgroundTransparency = 1
+RadarLabel.Text = "Ninguém por perto"
+RadarLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+RadarLabel.Font = Enum.Font.GothamSemibold
+RadarLabel.TextSize = 11
+RadarLabel.TextStrokeTransparency = 0.2
+RadarLabel.TextXAlignment = Enum.TextXAlignment.Left
+RadarLabel.TextYAlignment = Enum.TextYAlignment.Top
+RadarLabel.Parent = RadarFrame
+
+-- Abas
+local CombatTab = Window:CreateTab("🎯 Combate", 4483362458)
+local VisualTab = Window:CreateTab("👁️ Visuais (ESP)", 4483362458)
+local VehicleTab = Window:CreateTab("🚗 Veículo", 4483362458)
+local TpTab = Window:CreateTab("📍 Teleportes", 4483362458)
+
+-- 1. COMBATE
+CombatTab:CreateSection("Configurações do Aimbot")
+
+CombatTab:CreateToggle({
+    Name = "Ativar Aimbot",
+    CurrentValue = false,
+    Flag = "AimbotToggle",
+    Callback = function(Value)
+        Config.Aimbot = Value
+        FOVCircle.Visible = Value
+    end
+})
+
+CombatTab:CreateSlider({
+    Name = "Força / Velocidade da Mira",
+    Range = {0.1, 1},
+    Increment = 0.05,
+    Suffix = "x",
+    CurrentValue = Config.Smoothness,
+    Flag = "SmoothSlider",
+    Callback = function(Value)
+        Config.Smoothness = Value
+    end
+})
+
+CombatTab:CreateSlider({
+    Name = "Tamanho do Círculo (FOV)",
+    Range = {30, 450},
+    Increment = 5,
+    Suffix = "px",
+    CurrentValue = Config.FOV,
+    Flag = "FOVSlider",
+    Callback = function(Value)
+        Config.FOV = Value
+        FOVCircle.Size = UDim2.new(0, Value * 2, 0, Value * 2)
+    end
+})
+
+CombatTab:CreateToggle({
+    Name = "Ignorar Desarmados (Celular / Mãos Limpas)",
+    CurrentValue = false,
+    Flag = "IgnoreUnarmedToggle",
+    Callback = function(Value)
+        Config.IgnoreUnarmed = Value
+    end
+})
+
+CombatTab:CreateToggle({
+    Name = "Ignorar Mesmo Time",
+    CurrentValue = false,
+    Flag = "TeamCheckToggle",
+    Callback = function(Value)
+        Config.TeamCheck = Value
+    end
+})
+
+CombatTab:CreateToggle({
+    Name = "Compensador de Recuo (Zero Recoil)",
+    CurrentValue = true,
+    Flag = "NoRecoilToggle",
+    Callback = function(Value)
+        Config.NoRecoil = Value
+    end
+})
+
+-- Lista Dinâmica para Aimbot em Player Específico
+local function GetPlayerOptions()
+    local list = {"Nenhum (Mais Próximo)"}
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            table.insert(list, p.DisplayName .. " (@" .. p.Name .. ")")
+        end
+    end
+    return list
+end
+
+local TargetDropdown = CombatTab:CreateDropdown({
+    Name = "Alvo Específico (Gruda Com ou Sem Arma)",
+    Options = GetPlayerOptions(),
+    CurrentOption = "Nenhum (Mais Próximo)",
+    Flag = "SpecificTargetDropdown",
+    Callback = function(Value)
+        Config.SpecificTarget = Value
+    end
+})
+
+local function RefreshTargets()
+    pcall(function()
+        TargetDropdown:Set(GetPlayerOptions())
+    end)
+end
+Players.PlayerAdded:Connect(RefreshTargets)
+Players.PlayerRemoving:Connect(RefreshTargets)
+
+-- 2. VISUAIS (ESP)
+VisualTab:CreateToggle({
+    Name = "ESP Jogadores",
+    CurrentValue = false,
+    Flag = "PlayerESPToggle",
+    Callback = function(Value)
+        Config.PlayerESP = Value
+    end
+})
+
+VisualTab:CreateToggle({
+    Name = "ESP Veículos",
+    CurrentValue = false,
+    Flag = "VehicleESPToggle",
+    Callback = function(Value)
+        Config.VehicleESP = Value
+    end
+})
+
+-- 3. VEÍCULO
+VehicleTab:CreateToggle({
+    Name = "Carro Inquebrável (GodMode)",
+    CurrentValue = false,
+    Flag = "CarGodToggle",
+    Callback = function(Value)
+        Config.CarGodMode = Value
+    end
+})
+
+VehicleTab:CreateToggle({
+    Name = "Super Velocidade",
+    CurrentValue = false,
+    Flag = "CarSpeedToggle",
+    Callback = function(Value)
+        Config.CarSpeed = Value
+    end
+})
+
+VehicleTab:CreateSlider({
+    Name = "Velocidade Máxima",
+    Range = {40, 300},
+    Increment = 10,
+    Suffix = " KM/H",
+    CurrentValue = Config.CarSpeedVal,
+    Flag = "CarSpeedSlider",
+    Callback = function(Value)
+        Config.CarSpeedVal = Value
+    end
+})
+
+-- 4. TELEPORTES
+local function FindCurrentVehicle()
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if hum and hum.SeatPart then
+        local seat = hum.SeatPart
+        local model = seat:FindFirstAncestorOfClass("Model") or seat
+        return model, seat
+    end
+    return nil, nil
+end
+
+local function TeleportToPos(pos)
+    if not pos then return end
+    local model, seat = FindCurrentVehicle()
+    local cf = CFrame.new(pos + Vector3.new(0, 3.5, 0))
+
+    if model and seat then
+        local primary = model.PrimaryPart or seat
+        primary.AssemblyLinearVelocity = Vector3.zero
+        primary.AssemblyAngularVelocity = Vector3.zero
+        model:PivotTo(cf)
+    else
+        local char = LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if root then
+            root.AssemblyLinearVelocity = Vector3.zero
+            root.CFrame = cf
+        end
+    end
+end
+
+TpTab:CreateSection("Gerenciar Destinos")
+
+TpTab:CreateInput({
+    Name = "Nome do Local",
+    PlaceholderText = "Ex: Armário / Banco",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(Text)
+        Config.TempLocName = Text
+    end
+})
+
+local LocDropdown = TpTab:CreateDropdown({
+    Name = "Selecionar Destino",
+    Options = {"Nenhum local salvo"},
+    CurrentOption = "Nenhum local salvo",
+    Flag = "TeleportDropdown",
+    Callback = function(Option)
+        Config.SelectedLocation = Option
+    end
+})
+
+local function UpdateLocationDropdown()
+    local list = {}
+    for slot = 1, 5 do
+        if SavedLocations[slot] then
+            table.insert(list, string.format("[%d] %s", slot, SavedLocations[slot].Name))
+        end
+    end
+    if #list == 0 then
+        list = {"Nenhum local salvo"}
+    end
+    pcall(function()
+        LocDropdown:Set(list)
+    end)
+end
+
+TpTab:CreateButton({
+    Name = "🚀 Teleportar para Destino Selecionado",
+    Callback = function()
+        if Config.SelectedLocation == "Nenhum local salvo" or not Config.SelectedLocation then
+            Rayfield:Notify({Title = "Aviso", Content = "Selecione um local válido!", Duration = 2})
+            return
+        end
+
+        local slotNum = tonumber(string.match(Config.SelectedLocation, "%[(%d)%]"))
+        if slotNum and SavedLocations[slotNum] then
+            TeleportToPos(SavedLocations[slotNum].Pos)
+            Rayfield:Notify({Title = "Teleporte", Content = "Indo para: " .. SavedLocations[slotNum].Name, Duration = 2})
+        else
+            Rayfield:Notify({Title = "Aviso", Content = "Destino não encontrado!", Duration = 2})
+        end
+    end
+})
+
+TpTab:CreateSection("Slots de Salvamento (Até 5)")
+
+for i = 1, 5 do
+    TpTab:CreateButton({
+        Name = "💾 Salvar no Slot " .. i,
+        Callback = function()
+            local char = LocalPlayer.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            if root then
+                local finalName = (Config.TempLocName and Config.TempLocName ~= "") and Config.TempLocName or ("Ponto " .. i)
+                SavedLocations[i] = {
+                    Name = finalName,
+                    Pos = root.Position
+                }
+                UpdateLocationDropdown()
+                Rayfield:Notify({Title = "Salvo", Content = string.format("Slot %d salvo como '%s'!", i, finalName), Duration = 2.5})
+            end
+        end
+    })
+end
+
+-- VERIFICAÇÕES DE ALVO
+local function IsTeammate(player)
+    if not Config.TeamCheck then return false end
+    if LocalPlayer.Team and player.Team then
+        return LocalPlayer.Team == player.Team
+    end
+    return false
+end
+
+local function IsIgnoredTarget(player)
+    local char = player.Character
+    if not char then return true end
+
+    local tool = char:FindFirstChildOfClass("Tool")
+    if not tool then
+        return true
+    end
+
+    local tName = tool.Name:lower()
+    if tName:find("celular") or tName:find("phone") or tName:find("mão") or tName:find("mao") or tName:find("limpa") or tName:find("carteira") or tName:find("identidade") or tName:find("algema") then
+        return true
+    end
+
+    return false
+end
+
+-- BUSCA ROBUSTA DO ALVO
+local function GetClosestTarget()
+    local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    local target = nil
+    local shortestDist = Config.FOV
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            if Config.TeamCheck and IsTeammate(player) then
+                continue
+            end
+
+            local pTag = player.DisplayName .. " (@" .. player.Name .. ")"
+
+            -- 1. Alvo Específico
+            if Config.SpecificTarget ~= "Nenhum (Mais Próximo)" then
+                if Config.SpecificTarget == pTag then
+                    local head = player.Character:FindFirstChild("Head") or player.Character:FindFirstChild("HumanoidRootPart")
+                    local hum = player.Character:FindFirstChildOfClass("Humanoid")
+                    if head and (not hum or hum.Health > 0) then
+                        return head
+                    end
+                end
+            else
+                -- 2. Modo Círculo
+                local canTarget = true
+                if Config.IgnoreUnarmed and IsIgnoredTarget(player) then
+                    canTarget = false
+                end
+
+                if canTarget then
+                    local head = player.Character:FindFirstChild("Head") or player.Character:FindFirstChild("HumanoidRootPart")
+                    local hum = player.Character:FindFirstChildOfClass("Humanoid")
+
+                    if head and (not hum or hum.Health > 0) then
+                        local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+                        if onScreen then
+                            local dist = (Vector2.new(screenPos.X, screenPos.Y) - center).Magnitude
+                            if dist <= shortestDist then
+                                shortestDist = dist
+                                target = head
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return target
+end
+
+-- CONTROLE DEFINITIVO DA CÂMERA (Bypass no script de câmera do Roblox)
+local lastValidLookVector = Camera.CFrame.LookVector
+
+RunService:BindToRenderStep("Hub_Aimbot_Camera", Enum.RenderPriority.Camera.Value + 1, function()
+    if Config.Aimbot then
+        local targetHead = GetClosestTarget()
+        if targetHead then
+            local targetCFrame = CFrame.lookAt(Camera.CFrame.Position, targetHead.Position)
+            if Config.Smoothness >= 0.95 then
+                Camera.CFrame = targetCFrame
+            else
+                Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, Config.Smoothness)
+            end
+        end
+    end
+
+    -- Recoil
+    if Config.NoRecoil then
+        if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+            local currentLook = Camera.CFrame.LookVector
+            local diffY = currentLook.Y - lastValidLookVector.Y
+            if diffY > 0.008 then
+                Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, Camera.CFrame.Position + Vector3.new(currentLook.X, lastValidLookVector.Y, currentLook.Z))
+            end
+        end
+        lastValidLookVector = Camera.CFrame.LookVector
+    end
+end)
+
+-- LOOP DO VEÍCULO
+RunService.Heartbeat:Connect(function()
+    local model, seat = FindCurrentVehicle()
+    if not model or not seat then return end
+
+    local carRoot = model.PrimaryPart or seat
+
+    if Config.CarGodMode then
+        for _, part in ipairs(model:GetDescendants()) do
+            if part:IsA("BasePart") and not part.CanCollide then
+                part.CanCollide = true
+            end
+        end
+    end
+
+    if Config.CarSpeed then
+        local isMoving = false
+        local moveDir = carRoot.CFrame.LookVector
+
+        if seat:IsA("VehicleSeat") then
+            if seat.Throttle > 0 then
+                isMoving = true
+            elseif seat.Throttle < 0 then
+                isMoving = true
+                moveDir = -moveDir
+            end
+        end
+
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+            isMoving = true
+        elseif UserInputService:IsKeyDown(Enum.KeyCode.S) then
+            isMoving = true
+            moveDir = -moveDir
+        end
+
+        if isMoving then
+            local targetVel = moveDir * Config.CarSpeedVal
+            carRoot.AssemblyLinearVelocity = Vector3.new(
+                targetVel.X,
+                carRoot.AssemblyLinearVelocity.Y,
+                targetVel.Z
+            )
+        end
+    end
+end)
+
+-- ESP JOGADORES
+local playerVisuals = {}
+
+local function CleanupPlayerESP(p)
+    if playerVisuals[p] then
+        pcall(function() playerVisuals[p].Highlight:Destroy() end)
+        pcall(function() playerVisuals[p].Billboard:Destroy() end)
+        playerVisuals[p] = nil
+    end
+end
+
+local function UpdatePlayerESP()
+    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local myPos = myRoot and myRoot.Position or Camera.CFrame.Position
+
+    local nearbyList = {}
+
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            local char = p.Character
+            local head = char and char:FindFirstChild("Head")
+
+            if char and head then
+                local dist = math.floor((head.Position - myPos).Magnitude)
+
+                if dist <= 60 then
+                    table.insert(nearbyList, {Player = p, Dist = dist})
+                end
+
+                if Config.PlayerESP then
+                    local data = playerVisuals[p]
+                    if not data or data.Char ~= char then
+                        CleanupPlayerESP(p)
+
+                        local hl = Instance.new("Highlight")
+                        hl.Name = "ESP_HL_" .. p.Name
+                        hl.Adornee = char
+                        hl.FillTransparency = 0.75
+                        hl.OutlineTransparency = 0
+                        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                        hl.Parent = Camera
+
+                        local bb = Instance.new("BillboardGui")
+                        bb.Name = "ESP_BB_" .. p.Name
+                        bb.Adornee = head
+                        bb.Size = UDim2.new(0, 180, 0, 45)
+                        bb.StudsOffset = Vector3.new(0, 2.5, 0)
+                        bb.AlwaysOnTop = true
+                        bb.Parent = ESPGui
+
+                        local lbl = Instance.new("TextLabel")
+                        lbl.Size = UDim2.new(1, 0, 1, 0)
+                        lbl.BackgroundTransparency = 1
+                        lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+                        lbl.Font = Enum.Font.GothamBold
+                        lbl.TextSize = 12
+                        lbl.TextStrokeTransparency = 0
+                        lbl.Parent = bb
+
+                        data = {Char = char, Head = head, Highlight = hl, Billboard = bb, Label = lbl}
+                        playerVisuals[p] = data
+                    end
+
+                    local teamCol = p.TeamColor and p.TeamColor.Color or Color3.fromRGB(255, 255, 255)
+                    data.Highlight.OutlineColor = teamCol
+                    data.Highlight.FillColor = teamCol
+                    data.Highlight.Enabled = true
+                    data.Billboard.Enabled = true
+
+                    local tool = char:FindFirstChildOfClass("Tool")
+                    local item = tool and tool.Name or "Mãos Limpas"
+                    local teamName = p.Team and p.Team.Name or "Sem Time"
+
+                    data.Label.Text = string.format("[%s] %s [%dm]\nItem: %s", teamName, p.DisplayName, dist, item)
+                else
+                    if playerVisuals[p] then
+                        playerVisuals[p].Highlight.Enabled = false
+                        playerVisuals[p].Billboard.Enabled = false
+                    end
+                end
+            else
+                if playerVisuals[p] then
+                    playerVisuals[p].Highlight.Enabled = false
+                    playerVisuals[p].Billboard.Enabled = false
+                end
+            end
+        end
+    end
+
+    table.sort(nearbyList, function(a, b) return a.Dist < b.Dist end)
+    if #nearbyList > 0 then
+        local str = ""
+        for i = 1, math.min(4, #nearbyList) do
+            str = str .. string.format("• %s [%dm]\n", nearbyList[i].Player.DisplayName, nearbyList[i].Dist)
+        end
+        RadarLabel.Text = str
+    else
+        RadarLabel.Text = "Ninguém por perto"
+    end
+end
+
+Players.PlayerRemoving:Connect(CleanupPlayerESP)
+
+-- ESP VEÍCULOS
+local trackedCars = {}
+
+local function RegisterCarSeat(seat)
+    if not (seat:IsA("VehicleSeat") or seat:IsA("Seat")) then return end
+    local model = seat:FindFirstAncestorOfClass("Model") or seat
+    if trackedCars[model] then return end
+
+    local hl = Instance.new("Highlight")
+    hl.Name = "Car_HL"
+    hl.Adornee = model
+    hl.FillColor = Color3.fromRGB(0, 180, 255)
+    hl.FillTransparency = 0.8
+    hl.OutlineColor = Color3.fromRGB(0, 220, 255)
+    hl.OutlineTransparency = 0
+    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    hl.Parent = Camera
+
+    local bb = Instance.new("BillboardGui")
+    bb.Name = "Car_BB"
+    bb.Adornee = seat
+    bb.Size = UDim2.new(0, 140, 0, 25)
+    bb.StudsOffset = Vector3.new(0, 2.5, 0)
+    bb.AlwaysOnTop = true
+    bb.Parent = ESPGui
+
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, 0, 1, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.TextColor3 = Color3.fromRGB(0, 220, 255)
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 11
+    lbl.TextStrokeTransparency = 0
+    lbl.Parent = bb
+
+    trackedCars[model] = {Seat = seat, Highlight = hl, Billboard = bb, Label = lbl}
+end
+
+for _, obj in ipairs(Workspace:GetDescendants()) do
+    if obj:IsA("VehicleSeat") then
+        RegisterCarSeat(obj)
+    end
+end
+
+Workspace.DescendantAdded:Connect(function(obj)
+    if obj:IsA("VehicleSeat") then
+        RegisterCarSeat(obj)
+    end
+end)
+
+local function UpdateVehicleESP()
+    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local myPos = myRoot and myRoot.Position or Camera.CFrame.Position
+
+    for model, data in pairs(trackedCars) do
+        if model and model.Parent and data.Seat and data.Seat.Parent then
+            data.Highlight.Enabled = Config.VehicleESP
+            data.Billboard.Enabled = Config.VehicleESP
+            if Config.VehicleESP then
+                local dist = math.floor((data.Seat.Position - myPos).Magnitude)
+                data.Label.Text = string.format("[Veículo] [%dm]", dist)
+            end
+        else
+            pcall(function() data.Highlight:Destroy() end)
+            pcall(function() data.Billboard:Destroy() end)
+            trackedCars[model] = nil
+        end
+    end
+end
+
+-- LOOP CONTÍNUO
+task.spawn(function()
+    while true do
+        UpdatePlayerESP()
+        UpdateVehicleESP()
+        task.wait(0.15)
+    end
+end)
