@@ -995,4 +995,5 @@ FunTab:CreateButton({
     Callback = function() ExecuteAdminCommand("korblox") end
 })
 
+-- Linha corrigida (sem o texto colado no final):
 Notify("Admin HUD Carregado", "+100 Comandos Prontos! Use o menu ou a barra com ';'", 4)
