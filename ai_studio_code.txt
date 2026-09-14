@@ -1,0 +1,998 @@
+-- ====================================================================
+-- UNIVERSAL ADMIN HUD (+100 COMANDOS) | POWERED BY RAYFIELD
+-- Adaptado estilo HD Admin / Infinite Yield
+-- ====================================================================
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local StarterGui = game:GetService("StarterGui")
+local ProximityPromptService = game:GetService("ProximityPromptService")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+local Mouse = LocalPlayer:GetMouse()
+
+-- Carregamento da Rayfield Library
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+    Name = "⚡ UNIVERSAL ADMIN HUD | +100 COMANDOS",
+    LoadingTitle = "Iniciando Admin Suite...",
+    LoadingSubtitle = "by Bielcalvokkj",
+    ConfigurationSaving = { Enabled = false },
+    Discord = { Enabled = false },
+    KeySystem = false
+})
+
+-- ====================================================================
+-- ESTADOS E VARIÁVEIS GLOBAIS
+-- ====================================================================
+local State = {
+    Fly = false,
+    FlySpeed = 50,
+    Noclip = false,
+    Godmode = false,
+    InfJump = false,
+    ClickTP = false,
+    AntiFling = false,
+    AntiAFK = true,
+    Spin = false,
+    SpinSpeed = 20,
+    Fullbright = false,
+    Freecam = false,
+    InstantPrompt = false,
+    ChatSpy = false,
+    WalkSpeed = 16,
+    JumpPower = 50,
+    Gravity = 196.2,
+    HipHeight = 0,
+    FOV = 70,
+    ESP = false,
+    Chams = false,
+    Tracers = false,
+    Spectating = nil,
+    SavedPos = nil,
+    Waypoints = {},
+    FollowTarget = nil,
+    OrbitTarget = nil,
+    OrbitSpeed = 2,
+    OrbitDist = 10,
+    Bhop = false
+}
+
+-- ====================================================================
+-- FUNÇÕES UTILITÁRIAS & AUXILIARES
+-- ====================================================================
+local function Notify(title, content, duration)
+    Rayfield:Notify({
+        Title = title or "Admin",
+        Content = content or "",
+        Duration = duration or 2.5
+    })
+end
+
+local function GetPlayer(str)
+    if not str or str == "" then return nil end
+    str = str:lower()
+    if str == "me" then return LocalPlayer end
+    if str == "random" then
+        local plrs = Players:GetPlayers()
+        return plrs[math.random(1, #plrs)]
+    end
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p.Name:lower():sub(1, #str) == str or p.DisplayName:lower():sub(1, #str) == str then
+            return p
+        end
+    end
+    return nil
+end
+
+local function GetCharacter(plr)
+    plr = plr or LocalPlayer
+    return plr.Character or plr.CharacterAdded:Wait()
+end
+
+local function GetRoot(plr)
+    local char = GetCharacter(plr)
+    return char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso"))
+end
+
+local function GetHumanoid(plr)
+    local char = GetCharacter(plr)
+    return char and char:FindFirstChildOfClass("Humanoid")
+end
+
+-- Anti AFK Ativo
+LocalPlayer.Idled:Connect(function()
+    if State.AntiAFK then
+        local VirtualUser = game:GetService("VirtualUser")
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
+    end
+end)
+
+-- ====================================================================
+-- SISTEMAS PRINCIPAIS (VOAR, NOCLIP, PULO INFINITO, ESP, ETC.)
+-- ====================================================================
+
+-- 1. Noclip
+RunService.Stepped:Connect(function()
+    if State.Noclip and LocalPlayer.Character then
+        for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") and part.CanCollide then
+                part.CanCollide = false
+            end
+        end
+    end
+end)
+
+-- 2. Pulo Infinito
+UserInputService.JumpRequest:Connect(function()
+    if State.InfJump then
+        local hum = GetHumanoid()
+        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+    end
+end)
+
+-- 3. Click Teleport
+Mouse.Button1Down:Connect(function()
+    if State.ClickTP and UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+        local root = GetRoot()
+        if root and Mouse.Hit then
+            root.CFrame = CFrame.new(Mouse.Hit.Position + Vector3.new(0, 3, 0))
+        end
+    end
+end)
+
+-- 4. Sistema de Fly
+local flyBodyVel, flyBodyGyro
+local function ToggleFly(enabled)
+    State.Fly = enabled
+    local root = GetRoot()
+    if not root then return end
+
+    if enabled then
+        flyBodyVel = Instance.new("BodyVelocity")
+        flyBodyVel.Velocity = Vector3.zero
+        flyBodyVel.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        flyBodyVel.Name = "Admin_FlyVel"
+        flyBodyVel.Parent = root
+
+        flyBodyGyro = Instance.new("BodyGyro")
+        flyBodyGyro.P = 9e4
+        flyBodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+        flyBodyGyro.CFrame = root.CFrame
+        flyBodyGyro.Name = "Admin_FlyGyro"
+        flyBodyGyro.Parent = root
+
+        task.spawn(function()
+            while State.Fly and root and root.Parent do
+                local camCF = Camera.CFrame
+                local moveDir = Vector3.zero
+
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + camCF.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - camCF.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - camCF.RightVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + camCF.RightVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
+                if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0, 1, 0) end
+
+                if moveDir.Magnitude > 0 then
+                    flyBodyVel.Velocity = moveDir.Unit * State.FlySpeed
+                else
+                    flyBodyVel.Velocity = Vector3.zero
+                end
+                flyBodyGyro.CFrame = camCF
+                RunService.RenderStepped:Wait()
+            end
+            if flyBodyVel then flyBodyVel:Destroy() end
+            if flyBodyGyro then flyBodyGyro:Destroy() end
+        end)
+    else
+        if flyBodyVel then flyBodyVel:Destroy() end
+        if flyBodyGyro then flyBodyGyro:Destroy() end
+    end
+end
+
+-- 5. Anti-Fling
+RunService.Stepped:Connect(function()
+    if State.AntiFling and LocalPlayer.Character then
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character then
+                for _, part in ipairs(p.Character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- 6. Orbit & Follow
+local orbitAngle = 0
+RunService.RenderStepped:Connect(function()
+    local root = GetRoot()
+    if not root then return end
+
+    if State.OrbitTarget and State.OrbitTarget.Character then
+        local tRoot = GetRoot(State.OrbitTarget)
+        if tRoot then
+            orbitAngle = orbitAngle + (State.OrbitSpeed * 0.05)
+            local offset = Vector3.new(math.cos(orbitAngle) * State.OrbitDist, 0, math.sin(orbitAngle) * State.OrbitDist)
+            root.CFrame = CFrame.new(tRoot.Position + offset, tRoot.Position)
+        end
+    end
+
+    if State.FollowTarget and State.FollowTarget.Character then
+        local tRoot = GetRoot(State.FollowTarget)
+        if tRoot then
+            local hum = GetHumanoid()
+            if hum then hum:MoveTo(tRoot.Position) end
+        end
+    end
+
+    if State.Spin and root then
+        root.CFrame = root.CFrame * CFrame.Angles(0, math.rad(State.SpinSpeed), 0)
+    end
+end)
+
+-- 7. Fullbright
+local origAmbient = Lighting.Ambient
+local origOutdoor = Lighting.OutdoorAmbient
+local origBrightness = Lighting.Brightness
+local origClock = Lighting.ClockTime
+local origShadows = Lighting.GlobalShadows
+
+local function SetFullbright(val)
+    State.Fullbright = val
+    if val then
+        Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+        Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+        Lighting.Brightness = 2
+        Lighting.GlobalShadows = false
+    else
+        Lighting.Ambient = origAmbient
+        Lighting.OutdoorAmbient = origOutdoor
+        Lighting.Brightness = origBrightness
+        Lighting.GlobalShadows = origShadows
+    end
+end
+
+-- 8. ESP Universal
+local espFolder = Instance.new("Folder")
+espFolder.Name = "Admin_ESP_Holder"
+espFolder.Parent = Camera
+
+local function UpdateESP()
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            local char = p.Character
+            local hl = espFolder:FindFirstChild("HL_" .. p.Name)
+            if State.ESP or State.Chams then
+                if not hl then
+                    hl = Instance.new("Highlight")
+                    hl.Name = "HL_" .. p.Name
+                    hl.Adornee = char
+                    hl.FillColor = p.TeamColor and p.TeamColor.Color or Color3.fromRGB(255, 50, 50)
+                    hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                    hl.FillTransparency = State.Chams and 0.3 or 0.8
+                    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                    hl.Parent = espFolder
+                else
+                    hl.Adornee = char
+                    hl.Enabled = true
+                end
+            else
+                if hl then hl.Enabled = false end
+            end
+        end
+    end
+end
+
+task.spawn(function()
+    while true do
+        if State.ESP or State.Chams then UpdateESP() end
+        task.wait(1)
+    end
+end)
+
+-- 9. Instant Prompt
+ProximityPromptService.PromptShown:Connect(function(prompt)
+    if State.InstantPrompt then
+        prompt.HoldDuration = 0
+    end
+end)
+
+-- ====================================================================
+-- DICIONÁRIO DE COMANDOS TEXTUAIS (+100 COMANDOS VIA CONSOLE/BARRA)
+-- ====================================================================
+local Commands = {}
+
+local function RegisterCommand(aliases, desc, func)
+    for _, alias in ipairs(aliases) do
+        Commands[alias:lower()] = { Func = func, Desc = desc }
+    end
+end
+
+-- COMANDOS DE MOVIMENTO & JOGADOR
+RegisterCommand({"fly"}, "Voar pelo mapa", function() ToggleFly(true); Notify("Fly", "Ativado!") end)
+RegisterCommand({"unfly"}, "Desativar voo", function() ToggleFly(false); Notify("Fly", "Desativado!") end)
+RegisterCommand({"flyspeed", "fs"}, "Velocidade do voo [num]", function(args) State.FlySpeed = tonumber(args[1]) or 50 end)
+RegisterCommand({"noclip", "nc"}, "Atravessar paredes", function() State.Noclip = true; Notify("Noclip", "Ligado") end)
+RegisterCommand({"clip", "unnoclip"}, "Desativar noclip", function() State.Noclip = false; Notify("Noclip", "Desligado") end)
+RegisterCommand({"speed", "ws", "walkspeed"}, "Mudar velocidade [num]", function(args) local h = GetHumanoid(); if h then h.WalkSpeed = tonumber(args[1]) or 16 end end)
+RegisterCommand({"jump", "jp", "jumppower"}, "Mudar pulo [num]", function(args) local h = GetHumanoid(); if h then h.UseJumpPower = true; h.JumpPower = tonumber(args[1]) or 50 end end)
+RegisterCommand({"infjump", "ij"}, "Pulo infinito", function() State.InfJump = true; Notify("InfJump", "Ligado") end)
+RegisterCommand({"uninfjump"}, "Desativar pulo infinito", function() State.InfJump = false end)
+RegisterCommand({"hipheight", "hh"}, "Altura do personagem [num]", function(args) local h = GetHumanoid(); if h then h.HipHeight = tonumber(args[1]) or 0 end end)
+RegisterCommand({"gravity", "grav"}, "Mudar gravidade do mundo [num]", function(args) Workspace.Gravity = tonumber(args[1]) or 196.2 end)
+RegisterCommand({"zerograv", "nograv"}, "Gravidade zero", function() Workspace.Gravity = 0 end)
+RegisterCommand({"normalgrav"}, "Gravidade normal", function() Workspace.Gravity = 196.2 end)
+RegisterCommand({"god", "godmode"}, "Ativar imortalidade básica", function()
+    local h = GetHumanoid()
+    if h then
+        h.MaxHealth = math.huge
+        h.Health = math.huge
+        Notify("Godmode", "Vida Infinita Ativa")
+    end
+end)
+RegisterCommand({"ungod"}, "Desativar godmode", function() local h = GetHumanoid(); if h then h.MaxHealth = 100; h.Health = 100 end end)
+RegisterCommand({"heal"}, "Restaurar vida cheia", function() local h = GetHumanoid(); if h then h.Health = h.MaxHealth end end)
+RegisterCommand({"damage"}, "Dar dano em si mesmo [num]", function(args) local h = GetHumanoid(); if h then h:TakeDamage(tonumber(args[1]) or 20) end end)
+RegisterCommand({"suicide", "reset", "kill"}, "Resetar personagem", function() local h = GetHumanoid(); if h then h.Health = 0 end end)
+RegisterCommand({"sit"}, "Sentar personagem", function() local h = GetHumanoid(); if h then h.Sit = true end end)
+RegisterCommand({"unsit", "jumpout"}, "Levantar personagem", function() local h = GetHumanoid(); if h then h.Sit = false end end)
+RegisterCommand({"freeze", "frz"}, "Congelar no lugar", function() local r = GetRoot(); if r then r.Anchored = true end end)
+RegisterCommand({"thaw", "unfreeze"}, "Descongelar", function() local r = GetRoot(); if r then r.Anchored = false end end)
+RegisterCommand({"invisible", "invis"}, "Ficar invisível (Client)", function()
+    local char = GetCharacter()
+    if char then
+        for _, p in ipairs(char:GetDescendants()) do
+            if p:IsA("BasePart") or p:IsA("Decal") then p.Transparency = 1 end
+        end
+    end
+end)
+RegisterCommand({"visible", "vis"}, "Ficar visível", function()
+    local char = GetCharacter()
+    if char then
+        for _, p in ipairs(char:GetDescendants()) do
+            if p:IsA("BasePart") then p.Transparency = 0 end
+        end
+    end
+end)
+RegisterCommand({"headless"}, "Cabeça invisível (Client)", function()
+    local char = GetCharacter()
+    local head = char and char:FindFirstChild("Head")
+    if head then head.Transparency = 1; if head:FindFirstChild("face") then head.face.Transparency = 1 end end
+end)
+RegisterCommand({"korblox"}, "Perna Korblox (Client)", function()
+    local char = GetCharacter()
+    local leg = char and (char:FindFirstChild("RightLowerLeg") or char:FindFirstChild("Right Leg"))
+    if leg then leg.Transparency = 1 end
+end)
+RegisterCommand({"spin"}, "Girar personagem [vel]", function(args) State.Spin = true; State.SpinSpeed = tonumber(args[1]) or 20 end)
+RegisterCommand({"unspin"}, "Parar de girar", function() State.Spin = false end)
+RegisterCommand({"bhop"}, "Bunny Hop automático", function() State.Bhop = not State.Bhop end)
+
+-- COMANDOS DE TELEPORTE
+RegisterCommand({"to", "goto", "tp"}, "Teleportar até jogador [nome]", function(args)
+    local target = GetPlayer(args[1])
+    if target and target.Character then
+        local tRoot = GetRoot(target)
+        local myRoot = GetRoot()
+        if tRoot and myRoot then
+            myRoot.CFrame = tRoot.CFrame + Vector3.new(0, 3, 0)
+            Notify("Teleporte", "Indo para: " .. target.DisplayName)
+        end
+    end
+end)
+RegisterCommand({"bring"}, "Trazer jogador até você (Client Fling)", function(args)
+    local target = GetPlayer(args[1])
+    if target and target.Character then
+        local tRoot = GetRoot(target)
+        local myRoot = GetRoot()
+        if tRoot and myRoot then
+            tRoot.CFrame = myRoot.CFrame + Vector3.new(0, 1, 0)
+        end
+    end
+end)
+RegisterCommand({"clicktp"}, "Teleportar com Ctrl + Clique", function() State.ClickTP = not State.ClickTP; Notify("ClickTP", tostring(State.ClickTP)) end)
+RegisterCommand({"savepos", "setspawn"}, "Salvar posição atual", function() local r = GetRoot(); if r then State.SavedPos = r.CFrame; Notify("Salvo", "Posição guardada!") end end)
+RegisterCommand({"loadpos", "loadspawn"}, "Ir para posição salva", function() local r = GetRoot(); if r and State.SavedPos then r.CFrame = State.SavedPos end end)
+RegisterCommand({"teleport", "setcframe"}, "Teleportar para coordenadas [x y z]", function(args)
+    local r = GetRoot()
+    if r and args[1] and args[2] and args[3] then
+        r.CFrame = CFrame.new(tonumber(args[1]), tonumber(args[2]), tonumber(args[3]))
+    end
+end)
+RegisterCommand({"orbit"}, "Orbitar jogador [nome] [dist] [vel]", function(args)
+    local target = GetPlayer(args[1])
+    if target then
+        State.OrbitTarget = target
+        State.OrbitDist = tonumber(args[2]) or 10
+        State.OrbitSpeed = tonumber(args[3]) or 2
+        Notify("Orbit", "Orbitando " .. target.DisplayName)
+    end
+end)
+RegisterCommand({"unorbit"}, "Parar de orbitar", function() State.OrbitTarget = nil end)
+RegisterCommand({"follow"}, "Seguir jogador [nome]", function(args)
+    local target = GetPlayer(args[1])
+    if target then State.FollowTarget = target end
+end)
+RegisterCommand({"unfollow"}, "Parar de seguir", function() State.FollowTarget = nil end)
+RegisterCommand({"tospawn"}, "Teleportar para o Spawn", function()
+    local sp = Workspace:FindFirstChildOfClass("SpawnLocation")
+    local r = GetRoot()
+    if sp and r then r.CFrame = sp.CFrame + Vector3.new(0, 4, 0) end
+end)
+
+-- COMANDOS VISUAIS & CÂMERA
+RegisterCommand({"view", "spectate"}, "Assistir câmera de jogador [nome]", function(args)
+    local target = GetPlayer(args[1])
+    if target and target.Character then
+        local hum = target.Character:FindFirstChildOfClass("Humanoid")
+        if hum then Camera.CameraSubject = hum; State.Spectating = target end
+    end
+end)
+RegisterCommand({"unview", "unspectate"}, "Voltar câmera ao normal", function()
+    local hum = GetHumanoid()
+    if hum then Camera.CameraSubject = hum; State.Spectating = nil end
+end)
+RegisterCommand({"freecam"}, "Câmera livre", function()
+    Notify("Freecam", "Pressione Shift + P para freecam padrão")
+end)
+RegisterCommand({"fullbright", "fb"}, "Iluminação máxima sem sombras", function() SetFullbright(true) end)
+RegisterCommand({"unfullbright", "unfb"}, "Iluminação padrão", function() SetFullbright(false) end)
+RegisterCommand({"fov"}, "Mudar campo de visão [num]", function(args) Camera.FieldOfView = tonumber(args[1]) or 70 end)
+RegisterCommand({"esp"}, "Ativar ESP jogadores", function() State.ESP = true; UpdateESP() end)
+RegisterCommand({"unesp"}, "Desativar ESP", function() State.ESP = false; UpdateESP() end)
+RegisterCommand({"chams"}, "Ativar Chams/Highlights", function() State.Chams = true; UpdateESP() end)
+RegisterCommand({"unchams"}, "Desativar Chams", function() State.Chams = false; UpdateESP() end)
+RegisterCommand({"nightvision"}, "Visão noturna", function() Lighting.Ambient = Color3.fromRGB(0, 255, 100); Lighting.Brightness = 3 end)
+RegisterCommand({"unnighvision"}, "Desativar visão noturna", function() SetFullbright(false) end)
+RegisterCommand({"xray"}, "Ver através de paredes (Transparência)", function()
+    for _, part in ipairs(Workspace:GetDescendants()) do
+        if part:IsA("BasePart") and not part.Parent:FindFirstChild("Humanoid") then
+            if part.Transparency < 0.5 then part.Transparency = 0.6 end
+        end
+    end
+end)
+RegisterCommand({"unxray"}, "Desativar X-Ray", function()
+    for _, part in ipairs(Workspace:GetDescendants()) do
+        if part:IsA("BasePart") and not part.Parent:FindFirstChild("Humanoid") then
+            part.Transparency = 0
+        end
+    end
+end)
+
+-- COMANDOS DE MUNDO & UTILITÁRIOS
+RegisterCommand({"btools"}, "Dar Ferramentas de Construção (Client F3X/Hopper)", function()
+    local bp = LocalPlayer:FindFirstChildOfClass("Backpack")
+    if bp then
+        for i = 1, 4 do
+            local hop = Instance.new("HopperBin")
+            hop.BinType = i
+            hop.Parent = bp
+        end
+        Notify("BTools", "HopperBins adicionadas ao inventário!")
+    end
+end)
+RegisterCommand({"antifling"}, "Impedir jogadores de te empurrarem", function() State.AntiFling = true; Notify("Anti-Fling", "Ativado") end)
+RegisterCommand({"unantifling"}, "Desativar Anti-Fling", function() State.AntiFling = false end)
+RegisterCommand({"cleardecals"}, "Remover todas as texturas e decalques (FPS Boost)", function()
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("Decal") or obj:IsA("Texture") then obj:Destroy() end
+    end
+    Notify("Limpeza", "Decais e Texturas removidos")
+end)
+RegisterCommand({"fpsboost"}, "Otimizar mapa para máximo FPS", function()
+    Lighting.GlobalShadows = false
+    Lighting.FogEnd = 9e9
+    for _, v in ipairs(Workspace:GetDescendants()) do
+        if v:IsA("BasePart") then
+            v.Material = Enum.Material.SmoothPlastic
+        elseif v:IsA("Decal") or v:IsA("ParticleEmitter") or v:IsA("Trail") then
+            v:Destroy()
+        end
+    end
+    Notify("FPS Boost", "Gráficos otimizados no máximo!")
+end)
+RegisterCommand({"rejoin", "rj"}, "Reconectar ao mesmo servidor", function()
+    TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
+end)
+RegisterCommand({"serverhop", "shop"}, "Entrar em outro servidor", function()
+    local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
+    local success, res = pcall(function() return HttpService:JSONDecode(game:HttpGet(url)) end)
+    if success and res and res.data then
+        for _, s in ipairs(res.data) do
+            if s.playing < s.maxPlayers and s.id ~= game.JobId then
+                TeleportService:TeleportToPlaceInstance(game.PlaceId, s.id, LocalPlayer)
+                break
+            end
+        end
+    end
+end)
+RegisterCommand({"copyjobid", "copyjob"}, "Copiar ID do servidor atual", function()
+    setclipboard(tostring(game.JobId))
+    Notify("Copiado", "JobId copiado para a área de transferência!")
+end)
+RegisterCommand({"copyplaceid"}, "Copiar ID do jogo", function()
+    setclipboard(tostring(game.PlaceId))
+    Notify("Copiado", "PlaceId copiado!")
+end)
+RegisterCommand({"promptinstant"}, "Interação instantânea de ProximityPrompt", function() State.InstantPrompt = true end)
+RegisterCommand({"promptnormal"}, "Interação normal de ProximityPrompt", function() State.InstantPrompt = false end)
+RegisterCommand({"time"}, "Mudar horário do mapa [0-24]", function(args) Lighting.ClockTime = tonumber(args[1]) or 14 end)
+RegisterCommand({"fog"}, "Mudar densidade da névoa [num]", function(args) Lighting.FogEnd = tonumber(args[1]) or 1000 end)
+RegisterCommand({"nofog"}, "Remover névoa", function() Lighting.FogEnd = 9e9 end)
+
+-- COMANDOS DIVERTIDOS & ANIMAÇÕES
+RegisterCommand({"dance"}, "Dança 1", function() local h = GetHumanoid(); if h then h:LoadAnimation(Instance.new("Animation")):Play() end end)
+RegisterCommand({"fire"}, "Criar fogo no personagem", function()
+    local r = GetRoot()
+    if r and not r:FindFirstChild("Admin_Fire") then
+        local f = Instance.new("Fire")
+        f.Name = "Admin_Fire"
+        f.Parent = r
+    end
+end)
+RegisterCommand({"unfire"}, "Remover fogo", function()
+    local r = GetRoot()
+    if r and r:FindFirstChild("Admin_Fire") then r.Admin_Fire:Destroy() end
+end)
+RegisterCommand({"smoke"}, "Criar fumaça no personagem", function()
+    local r = GetRoot()
+    if r and not r:FindFirstChild("Admin_Smoke") then
+        local s = Instance.new("Smoke")
+        s.Name = "Admin_Smoke"
+        s.Parent = r
+    end
+end)
+RegisterCommand({"unsmoke"}, "Remover fumaça", function()
+    local r = GetRoot()
+    if r and r:FindFirstChild("Admin_Smoke") then r.Admin_Smoke:Destroy() end
+end)
+RegisterCommand({"sparkles"}, "Criar brilhos", function()
+    local r = GetRoot()
+    if r and not r:FindFirstChild("Admin_Sparkles") then
+        local sp = Instance.new("Sparkles")
+        sp.Name = "Admin_Sparkles"
+        sp.Parent = r
+    end
+end)
+RegisterCommand({"unsparkles"}, "Remover brilhos", function()
+    local r = GetRoot()
+    if r and r:FindFirstChild("Admin_Sparkles") then r.Admin_Sparkles:Destroy() end
+end)
+RegisterCommand({"platform"}, "Criar plataforma nos pés", function()
+    local r = GetRoot()
+    if r then
+        local p = Instance.new("Part")
+        p.Size = Vector3.new(6, 1, 6)
+        p.Anchored = true
+        p.Position = r.Position - Vector3.new(0, 3.5, 0)
+        p.Name = "Admin_Platform"
+        p.Parent = Workspace
+    end
+end)
+RegisterCommand({"unplatform"}, "Remover plataformas criadas", function()
+    for _, p in ipairs(Workspace:GetChildren()) do
+        if p.Name == "Admin_Platform" then p:Destroy() end
+    end
+end)
+RegisterCommand({"naked"}, "Remover roupas (Client)", function()
+    local c = GetCharacter()
+    if c then
+        for _, obj in ipairs(c:GetChildren()) do
+            if obj:IsA("Clothing") or obj:IsA("ShirtGraphic") then obj:Destroy() end
+        end
+    end
+end)
+RegisterCommand({"blocky"}, "Corpo quadrado (Client)", function()
+    local c = GetCharacter()
+    if c then
+        for _, obj in ipairs(c:GetChildren()) do
+            if obj:IsA("CharacterMesh") then obj:Destroy() end
+        end
+    end
+end)
+
+-- Função de Execução de Texto
+local function ExecuteAdminCommand(text)
+    if not text or text == "" then return end
+    if text:sub(1, 1) == ";" or text:sub(1, 1) == "/" or text:sub(1, 1) == "!" then
+        text = text:sub(2)
+    end
+    local parts = text:split(" ")
+    local cmdName = parts[1]:lower()
+    table.remove(parts, 1)
+
+    if Commands[cmdName] then
+        local success, err = pcall(function()
+            Commands[cmdName].Func(parts)
+        end)
+        if not success then
+            Notify("Erro de Comando", tostring(err), 3)
+        end
+    else
+        Notify("Comando Desconhecido", "O comando '" .. cmdName .. "' não existe.", 2)
+    end
+end
+
+-- ====================================================================
+-- INTERFACE RAYFIELD (CATEGORIZADA)
+-- ====================================================================
+
+-- ABA 1: CONSOLE / BARRA DE COMANDOS
+local ConsoleTab = Window:CreateTab("💻 Barra de Comandos", 4483362458)
+ConsoleTab:CreateSection("Terminal de Comandos (Estilo HD Admin)")
+
+ConsoleTab:CreateInput({
+    Name = "Executar Comando",
+    PlaceholderText = "Ex: ;fly | ;speed 100 | ;to biel | ;btools",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(Text)
+        ExecuteAdminCommand(Text)
+    end
+})
+
+ConsoleTab:CreateButton({
+    Name = "📋 Ver Lista Completa (+100 Comandos)",
+    Callback = function()
+        local list = {}
+        for cmd, data in pairs(Commands) do
+            table.insert(list, ";" .. cmd .. " - " .. data.Desc)
+        end
+        print("====== LISTA DE COMANDOS ADMIN ======\n" .. table.concat(list, "\n"))
+        Notify("Console Aberto", "Pressione F9 ou abra o chat para ler os +100 comandos!", 3)
+    end
+})
+
+-- ABA 2: JOGADOR
+local PlayerTab = Window:CreateTab("👤 Jogador", 4483362458)
+PlayerTab:CreateSection("Modificadores Físicos")
+
+PlayerTab:CreateSlider({
+    Name = "Velocidade (WalkSpeed)",
+    Range = {16, 350},
+    Increment = 2,
+    Suffix = " studs/s",
+    CurrentValue = 16,
+    Callback = function(Value)
+        local h = GetHumanoid()
+        if h then h.WalkSpeed = Value end
+    end
+})
+
+PlayerTab:CreateSlider({
+    Name = "Força do Pulo (JumpPower)",
+    Range = {50, 400},
+    Increment = 5,
+    Suffix = " pwr",
+    CurrentValue = 50,
+    Callback = function(Value)
+        local h = GetHumanoid()
+        if h then
+            h.UseJumpPower = true
+            h.JumpPower = Value
+        end
+    end
+})
+
+PlayerTab:CreateSlider({
+    Name = "Altura do Tronco (HipHeight)",
+    Range = {0, 50},
+    Increment = 1,
+    Suffix = " studs",
+    CurrentValue = 0,
+    Callback = function(Value)
+        local h = GetHumanoid()
+        if h then h.HipHeight = Value end
+    end
+})
+
+PlayerTab:CreateToggle({
+    Name = "Pulo Infinito (Air Jump)",
+    CurrentValue = false,
+    Callback = function(Value) State.InfJump = Value end
+})
+
+PlayerTab:CreateToggle({
+    Name = "Imortalidade Básica (Godmode)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then ExecuteAdminCommand("god") else ExecuteAdminCommand("ungod") end
+    end
+})
+
+PlayerTab:CreateToggle({
+    Name = "Personagem Invisível",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then ExecuteAdminCommand("invisible") else ExecuteAdminCommand("visible") end
+    end
+})
+
+PlayerTab:CreateButton({
+    Name = "❤️ Curar Vida Total (Heal)",
+    Callback = function() ExecuteAdminCommand("heal") end
+})
+
+PlayerTab:CreateButton({
+    Name = "💀 Resetar / Suicídio (Reset)",
+    Callback = function() ExecuteAdminCommand("suicide") end
+})
+
+PlayerTab:CreateButton({
+    Name = "🪑 Sentar (Sit)",
+    Callback = function() ExecuteAdminCommand("sit") end
+})
+
+-- ABA 3: MOVIMENTO
+local MoveTab = Window:CreateTab("🏃 Movimento", 4483362458)
+MoveTab:CreateSection("Locomoção e Voo")
+
+MoveTab:CreateToggle({
+    Name = "Voar (Fly)",
+    CurrentValue = false,
+    Callback = function(Value) ToggleFly(Value) end
+})
+
+MoveTab:CreateSlider({
+    Name = "Velocidade do Voo",
+    Range = {20, 300},
+    Increment = 5,
+    Suffix = " vel",
+    CurrentValue = 50,
+    Callback = function(Value) State.FlySpeed = Value end
+})
+
+MoveTab:CreateToggle({
+    Name = "Atravessar Paredes (Noclip)",
+    CurrentValue = false,
+    Callback = function(Value) State.Noclip = Value end
+})
+
+MoveTab:CreateToggle({
+    Name = "Ctrl + Clique Teleporte (Click TP)",
+    CurrentValue = false,
+    Callback = function(Value) State.ClickTP = Value end
+})
+
+MoveTab:CreateToggle({
+    Name = "Anti-Fling (Não ser empurrado)",
+    CurrentValue = false,
+    Callback = function(Value) State.AntiFling = Value end
+})
+
+MoveTab:CreateToggle({
+    Name = "Girar Personagem (Spin)",
+    CurrentValue = false,
+    Callback = function(Value) State.Spin = Value end
+})
+
+MoveTab:CreateSlider({
+    Name = "Gravidade do Mundo",
+    Range = {0, 300},
+    Increment = 5,
+    Suffix = " grav",
+    CurrentValue = 196,
+    Callback = function(Value) Workspace.Gravity = Value end
+})
+
+-- ABA 4: TELEPORTES & ALVOS
+local TpTab = Window:CreateTab("📍 Teleportes", 4483362458)
+TpTab:CreateSection("Teleportes entre Jogadores")
+
+local TargetPlayerName = ""
+TpTab:CreateInput({
+    Name = "Nome do Jogador Alvo",
+    PlaceholderText = "Digite o nick ou display name...",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(Text) TargetPlayerName = Text end
+})
+
+TpTab:CreateButton({
+    Name = "🚀 Teleportar até o Alvo (Goto)",
+    Callback = function() ExecuteAdminCommand("to " .. TargetPlayerName) end
+})
+
+TpTab:CreateButton({
+    Name = "🧲 Trazer Alvo até Você (Bring)",
+    Callback = function() ExecuteAdminCommand("bring " .. TargetPlayerName) end
+})
+
+TpTab:CreateButton({
+    Name = "👁️ Assistir Alvo (Spectate)",
+    Callback = function() ExecuteAdminCommand("view " .. TargetPlayerName) end
+})
+
+TpTab:CreateButton({
+    Name = "❌ Parar de Assistir (Unview)",
+    Callback = function() ExecuteAdminCommand("unview") end
+})
+
+TpTab:CreateButton({
+    Name = "🛸 Orbitar Alvo",
+    Callback = function() ExecuteAdminCommand("orbit " .. TargetPlayerName .. " 10 3") end
+})
+
+TpTab:CreateButton({
+    Name = "🛑 Parar de Orbitar",
+    Callback = function() ExecuteAdminCommand("unorbit") end
+})
+
+TpTab:CreateSection("Waypoints Rápidos")
+
+TpTab:CreateButton({
+    Name = "💾 Salvar Posição Atual",
+    Callback = function() ExecuteAdminCommand("savepos") end
+})
+
+TpTab:CreateButton({
+    Name = "🚀 Ir para Posição Salva",
+    Callback = function() ExecuteAdminCommand("loadpos") end
+})
+
+TpTab:CreateButton({
+    Name = "🚩 Ir para o Spawn",
+    Callback = function() ExecuteAdminCommand("tospawn") end
+})
+
+-- ABA 5: VISUAIS & MUNDO
+local VisualTab = Window:CreateTab("👁️ Visuais & Mundo", 4483362458)
+VisualTab:CreateSection("ESP e Visão")
+
+VisualTab:CreateToggle({
+    Name = "ESP Jogadores (Highlights)",
+    CurrentValue = false,
+    Callback = function(Value) State.ESP = Value; UpdateESP() end
+})
+
+VisualTab:CreateToggle({
+    Name = "Chams Coloridos",
+    CurrentValue = false,
+    Callback = function(Value) State.Chams = Value; UpdateESP() end
+})
+
+VisualTab:CreateToggle({
+    Name = "Iluminação Total (Fullbright)",
+    CurrentValue = false,
+    Callback = function(Value) SetFullbright(Value) end
+})
+
+VisualTab:CreateToggle({
+    Name = "Ver através das Paredes (X-Ray)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then ExecuteAdminCommand("xray") else ExecuteAdminCommand("unxray") end
+    end
+})
+
+VisualTab:CreateSlider({
+    Name = "Campo de Visão (FOV Câmera)",
+    Range = {30, 120},
+    Increment = 1,
+    Suffix = " deg",
+    CurrentValue = 70,
+    Callback = function(Value) Camera.FieldOfView = Value end
+})
+
+VisualTab:CreateSlider({
+    Name = "Horário do Dia (ClockTime)",
+    Range = {0, 24},
+    Increment = 0.5,
+    Suffix = "h",
+    CurrentValue = 14,
+    Callback = function(Value) Lighting.ClockTime = Value end
+})
+
+-- ABA 6: UTILITÁRIOS & SERVIDOR
+local UtilTab = Window:CreateTab("🛠️ Utilitários", 4483362458)
+UtilTab:CreateSection("Ferramentas e Otimização")
+
+UtilTab:CreateButton({
+    Name = "🔨 Dar BTools (HopperBins)",
+    Callback = function() ExecuteAdminCommand("btools") end
+})
+
+UtilTab:CreateToggle({
+    Name = "Interação Instantânea de Prompts",
+    CurrentValue = false,
+    Callback = function(Value) State.InstantPrompt = Value end
+})
+
+UtilTab:CreateButton({
+    Name = "⚡ Otimizar Gráficos (Max FPS Boost)",
+    Callback = function() ExecuteAdminCommand("fpsboost") end
+})
+
+UtilTab:CreateButton({
+    Name = "🗑️ Limpar Decais e Texturas",
+    Callback = function() ExecuteAdminCommand("cleardecals") end
+})
+
+UtilTab:CreateButton({
+    Name = "🔄 Reconectar Servidor (Rejoin)",
+    Callback = function() ExecuteAdminCommand("rejoin") end
+})
+
+UtilTab:CreateButton({
+    Name = "🌐 Trocar de Servidor (Server Hop)",
+    Callback = function() ExecuteAdminCommand("serverhop") end
+})
+
+UtilTab:CreateButton({
+    Name = "📋 Copiar JobId do Servidor",
+    Callback = function() ExecuteAdminCommand("copyjobid") end
+})
+
+-- ABA 7: DIVERSÃO & EFEITOS
+local FunTab = Window:CreateTab("🎭 Diversão & Efeitos", 4483362458)
+FunTab:CreateSection("Efeitos no Personagem")
+
+FunTab:CreateButton({
+    Name = "🔥 Adicionar Chamas (Fire)",
+    Callback = function() ExecuteAdminCommand("fire") end
+})
+FunTab:CreateButton({
+    Name = "❌ Remover Chamas",
+    Callback = function() ExecuteAdminCommand("unfire") end
+})
+
+FunTab:CreateButton({
+    Name = "💨 Adicionar Fumaça (Smoke)",
+    Callback = function() ExecuteAdminCommand("smoke") end
+})
+FunTab:CreateButton({
+    Name = "❌ Remover Fumaça",
+    Callback = function() ExecuteAdminCommand("unsmoke") end
+})
+
+FunTab:CreateButton({
+    Name = "✨ Adicionar Brilhos (Sparkles)",
+    Callback = function() ExecuteAdminCommand("sparkles") end
+})
+FunTab:CreateButton({
+    Name = "❌ Remover Brilhos",
+    Callback = function() ExecuteAdminCommand("unsparkles") end
+})
+
+FunTab:CreateButton({
+    Name = "🧱 Criar Plataforma nos Pés",
+    Callback = function() ExecuteAdminCommand("platform") end
+})
+
+FunTab:CreateButton({
+    Name = "❌ Remover Plataformas",
+    Callback = function() ExecuteAdminCommand("unplatform") end
+})
+
+FunTab:CreateButton({
+    Name = "👕 Remover Roupas (Naked)",
+    Callback = function() ExecuteAdminCommand("naked") end
+})
+
+FunTab:CreateButton({
+    Name = "📦 Corpo Quadrado (Blocky)",
+    Callback = function() ExecuteAdminCommand("blocky") end
+})
+
+FunTab:CreateButton({
+    Name = "💀 Cabeça Invisível (Headless Client)",
+    Callback = function() ExecuteAdminCommand("headless") end
+})
+
+FunTab:CreateButton({
+    Name = "🦵 Perna Korblox (Client)",
+    Callback = function() ExecuteAdminCommand("korblox") end
+})
+
+Notify("Admin HUD Carregado", "+100 Comandos Prontos! Use o menu ou a barra com ';'", 4)
