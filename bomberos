@@ -1,0 +1,429 @@
+-- ==================================================
+-- SERVIÇOS E CONFIGURAÇÕES INICIAIS
+-- ==================================================
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Workspace = workspace
+local Camera = Workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+
+-- Pega o nome e versão do Executor
+local execName, execVersion = "Desconhecido", "v1.0"
+pcall(function()
+    execName, execVersion = identifyexecutor()
+end)
+
+-- ==================================================
+-- CRIAÇÃO DA INTERFACE (UI CUSTOMIZADA)
+-- ==================================================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "BombeirosHub"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = game:GetService("CoreGui")
+
+-- Cores da Interface Baseadas na Imagem
+local Colors = {
+    Background = Color3.fromRGB(10, 12, 20),
+    Sidebar = Color3.fromRGB(13, 16, 26),
+    Card = Color3.fromRGB(18, 22, 35),
+    CardHover = Color3.fromRGB(25, 30, 45),
+    Accent = Color3.fromRGB(0, 120, 255),
+    Text = Color3.fromRGB(255, 255, 255),
+    TextDim = Color3.fromRGB(160, 170, 190)
+}
+
+-- Janela Principal
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 850, 0, 520)
+MainFrame.Position = UDim2.new(0.5, -425, 0.5, -260)
+MainFrame.BackgroundColor3 = Colors.Background
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local MainUICorner = Instance.new("UICorner")
+MainUICorner.CornerRadius = UDim.new(0, 10)
+MainUICorner.Parent = MainFrame
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Colors.Accent
+MainStroke.Thickness = 2
+MainStroke.Parent = MainFrame
+
+-- ==================================================
+-- TOP BAR (Cabeçalho)
+-- ==================================================
+local TopBar = Instance.new("Frame")
+TopBar.Name = "TopBar"
+TopBar.Size = UDim2.new(1, 0, 0, 60)
+TopBar.BackgroundColor3 = Colors.Sidebar
+TopBar.BorderSizePixel = 0
+TopBar.Parent = MainFrame
+
+local TopBarCorner = Instance.new("UICorner")
+TopBarCorner.CornerRadius = UDim.new(0, 10)
+TopBarCorner.Parent = TopBar
+
+local TopBarFix = Instance.new("Frame")
+TopBarFix.Size = UDim2.new(1, 0, 0, 15)
+TopBarFix.Position = UDim2.new(0, 0, 1, -15)
+TopBarFix.BackgroundColor3 = Colors.Sidebar
+TopBarFix.BorderSizePixel = 0
+TopBarFix.Parent = TopBar
+
+local LogoIcon = Instance.new("ImageLabel")
+LogoIcon.Size = UDim2.new(0, 30, 0, 30)
+LogoIcon.Position = UDim2.new(0, 20, 0.5, -15)
+LogoIcon.BackgroundTransparency = 1
+LogoIcon.Image = "rbxassetid://108389708131455" -- Ícone azul
+LogoIcon.ImageColor3 = Colors.Accent
+LogoIcon.Parent = TopBar
+
+local TitleText = Instance.new("TextLabel")
+TitleText.Size = UDim2.new(0, 200, 0, 30)
+TitleText.Position = UDim2.new(0, 60, 0.5, -15)
+TitleText.BackgroundTransparency = 1
+TitleText.Text = "BOMBEIROS"
+TitleText.TextColor3 = Colors.Text
+TitleText.Font = Enum.Font.GothamBlack
+TitleText.TextSize = 24
+TitleText.TextXAlignment = Enum.TextXAlignment.Left
+TitleText.Parent = TopBar
+
+local StatusFrame = Instance.new("Frame")
+StatusFrame.Size = UDim2.new(0, 140, 0, 30)
+StatusFrame.Position = UDim2.new(1, -160, 0.5, -15)
+StatusFrame.BackgroundColor3 = Color3.fromRGB(20, 25, 35)
+StatusFrame.Parent = TopBar
+Instance.new("UICorner", StatusFrame).CornerRadius = UDim.new(0, 6)
+
+local StatusText = Instance.new("TextLabel")
+StatusText.Size = UDim2.new(1, 0, 1, 0)
+StatusText.BackgroundTransparency = 1
+StatusText.Text = "STATUS 🟢 PRONTO"
+StatusText.TextColor3 = Colors.Text
+StatusText.Font = Enum.Font.GothamBold
+StatusText.TextSize = 12
+StatusText.Parent = StatusFrame
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -40, 0.5, -15)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Text = "✕"
+CloseBtn.TextColor3 = Colors.Text
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 20
+CloseBtn.Parent = TopBar
+CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+
+-- ==================================================
+-- SIDEBAR (Menu Esquerdo)
+-- ==================================================
+local Sidebar = Instance.new("Frame")
+Sidebar.Name = "Sidebar"
+Sidebar.Size = UDim2.new(0, 180, 1, -60)
+Sidebar.Position = UDim2.new(0, 0, 0, 60)
+Sidebar.BackgroundColor3 = Colors.Sidebar
+Sidebar.BorderSizePixel = 0
+Sidebar.Parent = MainFrame
+
+-- Informação do Executor (Canto Inferior Esquerdo)
+local ExecutorInfo = Instance.new("TextLabel")
+ExecutorInfo.Size = UDim2.new(1, -20, 0, 40)
+ExecutorInfo.Position = UDim2.new(0, 10, 1, -50)
+ExecutorInfo.BackgroundTransparency = 1
+ExecutorInfo.Text = "BOMBEIROS:\n" .. execName .. " " .. execVersion
+ExecutorInfo.TextColor3 = Colors.Accent
+ExecutorInfo.Font = Enum.Font.GothamBold
+ExecutorInfo.TextSize = 12
+ExecutorInfo.TextXAlignment = Enum.TextXAlignment.Center
+ExecutorInfo.Parent = Sidebar
+
+-- Botões do Menu
+local function CreateSidebarButton(name, icon, isActive)
+    local Btn = Instance.new("TextButton")
+    Btn.Size = UDim2.new(1, -20, 0, 40)
+    Btn.BackgroundColor3 = isActive and Colors.Accent or Colors.Sidebar
+    Btn.Text = ""
+    Btn.Parent = Sidebar
+    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 6)
+    
+    if isActive then
+        Btn.Position = UDim2.new(0, 10, 0, 20)
+    else
+        Btn.Position = UDim2.new(0, 10, 0, 70) -- Apenas ilustrativo para o exemplo
+    end
+
+    local BtnText = Instance.new("TextLabel")
+    BtnText.Size = UDim2.new(1, -40, 1, 0)
+    BtnText.Position = UDim2.new(0, 35, 0, 0)
+    BtnText.BackgroundTransparency = 1
+    BtnText.Text = name
+    BtnText.TextColor3 = Colors.Text
+    BtnText.Font = Enum.Font.GothamBold
+    BtnText.TextSize = 12
+    BtnText.TextXAlignment = Enum.TextXAlignment.Left
+    BtnText.Parent = Btn
+
+    local IconImg = Instance.new("ImageLabel")
+    IconImg.Size = UDim2.new(0, 20, 0, 20)
+    IconImg.Position = UDim2.new(0, 10, 0.5, -10)
+    IconImg.BackgroundTransparency = 1
+    IconImg.Image = icon
+    IconImg.ImageColor3 = Colors.Text
+    IconImg.Parent = Btn
+end
+
+CreateSidebarButton("MAIN", "rbxassetid://10709798940", true)
+CreateSidebarButton("PLAYER", "rbxassetid://10709798998", false)
+CreateSidebarButton("VISUALS", "rbxassetid://10709798981", false)
+CreateSidebarButton("TELEPORT", "rbxassetid://10709798969", false)
+CreateSidebarButton("PROTEÇÃO", "rbxassetid://10709799024", false)
+
+-- ==================================================
+-- ÁREA DE CONTEÚDO (Cards)
+-- ==================================================
+local ContentArea = Instance.new("ScrollingFrame")
+ContentArea.Name = "ContentArea"
+ContentArea.Size = UDim2.new(1, -180, 1, -60)
+ContentArea.Position = UDim2.new(0, 180, 0, 60)
+ContentArea.BackgroundTransparency = 1
+ContentArea.CanvasSize = UDim2.new(0, 0, 0, 0)
+ContentArea.AutomaticCanvasSize = Enum.AutomaticSize.Y
+ContentArea.ScrollBarThickness = 2
+ContentArea.ScrollBarImageColor3 = Colors.Accent
+ContentArea.Parent = MainFrame
+
+local Padding = Instance.new("UIPadding")
+Padding.PaddingTop = UDim.new(0, 20)
+Padding.PaddingLeft = UDim.new(0, 20)
+Padding.PaddingRight = UDim.new(0, 20)
+Padding.Parent = ContentArea
+
+local Grid = Instance.new("UIGridLayout")
+Grid.CellSize = UDim2.new(0.33, -14, 0, 80)
+Grid.CellPadding = UDim2.new(0, 10, 0, 10)
+Grid.SortOrder = Enum.SortOrder.LayoutOrder
+Grid.Parent = ContentArea
+
+-- Função para Criar os Cards
+local function CreateCard(title, desc, icon, isToggle, callback)
+    local Card = Instance.new("TextButton")
+    Card.BackgroundColor3 = Colors.Card
+    Card.Text = ""
+    Card.AutoButtonColor = false
+    Card.Parent = ContentArea
+    Instance.new("UICorner", Card).CornerRadius = UDim.new(0, 8)
+    
+    local Stroke = Instance.new("UIStroke")
+    Stroke.Color = Colors.Accent
+    Stroke.Thickness = 1
+    Stroke.Transparency = 0.8
+    Stroke.Parent = Card
+
+    local IconImg = Instance.new("ImageLabel")
+    IconImg.Size = UDim2.new(0, 24, 0, 24)
+    IconImg.Position = UDim2.new(0, 15, 0, 15)
+    IconImg.BackgroundTransparency = 1
+    IconImg.Image = icon
+    IconImg.ImageColor3 = Colors.Text
+    IconImg.Parent = Card
+
+    local TitleLbl = Instance.new("TextLabel")
+    TitleLbl.Size = UDim2.new(1, -50, 0, 20)
+    TitleLbl.Position = UDim2.new(0, 45, 0, 12)
+    TitleLbl.BackgroundTransparency = 1
+    TitleLbl.Text = title
+    TitleLbl.TextColor3 = Colors.Text
+    TitleLbl.Font = Enum.Font.GothamBold
+    TitleLbl.TextSize = 14
+    TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLbl.Parent = Card
+
+    local DescLbl = Instance.new("TextLabel")
+    DescLbl.Size = UDim2.new(1, -60, 0, 30)
+    DescLbl.Position = UDim2.new(0, 45, 0, 35)
+    DescLbl.BackgroundTransparency = 1
+    DescLbl.Text = desc
+    DescLbl.TextColor3 = Colors.TextDim
+    DescLbl.Font = Enum.Font.Gotham
+    DescLbl.TextSize = 11
+    DescLbl.TextWrapped = true
+    DescLbl.TextXAlignment = Enum.TextXAlignment.Left
+    DescLbl.TextYAlignment = Enum.TextYAlignment.Top
+    DescLbl.Parent = Card
+
+    if isToggle then
+        local ToggleBtn = Instance.new("TextButton")
+        ToggleBtn.Size = UDim2.new(0, 20, 0, 20)
+        ToggleBtn.Position = UDim2.new(1, -30, 0, 15)
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 35, 45)
+        ToggleBtn.Text = ""
+        ToggleBtn.Parent = Card
+        Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 4)
+        
+        local ToggleStroke = Instance.new("UIStroke")
+        ToggleStroke.Color = Colors.Accent
+        ToggleStroke.Parent = ToggleBtn
+        
+        local Check = Instance.new("ImageLabel")
+        Check.Size = UDim2.new(0, 16, 0, 16)
+        Check.Position = UDim2.new(0.5, -8, 0.5, -8)
+        Check.BackgroundTransparency = 1
+        Check.Image = "rbxassetid://10709798940" -- Check icon
+        Check.ImageColor3 = Colors.Accent
+        Check.Visible = false
+        Check.Parent = ToggleBtn
+
+        local state = false
+        ToggleBtn.MouseButton1Click:Connect(function()
+            state = not state
+            Check.Visible = state
+            ToggleBtn.BackgroundColor3 = state and Color3.fromRGB(20, 40, 70) or Color3.fromRGB(30, 35, 45)
+            if callback then callback(state) end
+        end)
+    else
+        -- Botão de ação (Click no card inteiro)
+        Card.MouseEnter:Connect(function() Card.BackgroundColor3 = Colors.CardHover end)
+        Card.MouseLeave:Connect(function() Card.BackgroundColor3 = Colors.Card end)
+        Card.MouseButton1Click:Connect(function()
+            if callback then callback() end
+        end)
+    end
+    return Card
+end
+
+-- ==================================================
+-- LÓGICA DOS SCRIPTS (Conectando com a UI)
+-- ==================================================
+
+-- Variáveis de Controle
+local espEnabled = false
+local npcEspEnabled = false
+local speedEnabled = false
+local godEnabled = false
+local espObjects = {}
+
+-- Função ESP Jogadores
+local function toggleESP(state)
+    espEnabled = state
+    if state then
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character then
+                local hl = Instance.new("Highlight", p.Character)
+                hl.FillColor = Color3.fromRGB(0, 255, 100)
+                hl.OutlineColor = Color3.fromRGB(0, 255, 100)
+                espObjects[p] = hl
+            end
+        end
+    else
+        for p, hl in pairs(espObjects) do
+            if hl then hl:Destroy() end
+        end
+        table.clear(espObjects)
+    end
+end
+
+-- Função Speed Hack
+local function toggleSpeed(state)
+    speedEnabled = state
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum.WalkSpeed = state and 50 or 16
+    end
+end
+
+-- Função God Mode
+local function toggleGod(state)
+    godEnabled = state
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum.MaxHealth = state and math.huge or 100
+        hum.Health = hum.MaxHealth
+    end
+end
+
+-- Função Teleportar para Mouse
+local function teleportMouse()
+    local char = LocalPlayer.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if root then
+        local mouse = LocalPlayer:GetMouse()
+        root.CFrame = CFrame.new(mouse.Hit.Position + Vector3.new(0, 3, 0))
+    end
+end
+
+-- ==================================================
+-- ADICIONANDO OS CARDS NA TELA
+-- ==================================================
+
+-- Linha 1
+CreateCard("ESP", "Mostra jogadores, armas e itens no mapa.", "rbxassetid://10709798981", true, toggleESP)
+CreateCard("AIMBOT", "Mira automática nos inimigos (compatível).", "rbxassetid://10709798611", true, function(s) print("Aimbot", s) end)
+CreateCard("SPEED HACK", "Aumenta a velocidade do seu personagem.", "rbxassetid://10709798998", true, toggleSpeed)
+
+-- Linha 2
+CreateCard("NO RECOIL", "Remove o recuo das armas.", "rbxassetid://10709798940", true, function(s) print("No Recoil", s) end)
+CreateCard("TELEPORT", "Teleporta para a direção do mouse.", "rbxassetid://10709798969", false, teleportMouse)
+CreateCard("AUTO FARM", "Coleta itens automaticamente.", "rbxassetid://10709798611", true, function(s) print("Auto Farm", s) end)
+
+-- Linha 3
+CreateCard("INVISÍVEL", "Deixa seu personagem invisível.", "rbxassetid://10709798998", true, function(s) print("Invisivel", s) end)
+CreateCard("GOD MODE", "Vida infinita no servidor local.", "rbxassetid://10709799024", true, toggleGod)
+CreateCard("CRÉDITOS", "Desenvolvido por Bombeiros Hub.", "rbxassetid://10709798940", false, function() end)
+
+-- Área de NPCs (Botão separado para maior)
+local NPCFrame = Instance.new("Frame")
+NPCFrame.Size = UDim2.new(1, -20, 0, 100)
+NPCFrame.BackgroundColor3 = Colors.Card
+NPCFrame.Parent = ContentArea
+Instance.new("UICorner", NPCFrame).CornerRadius = UDim.new(0, 8)
+Grid.Parent = nil -- Desativa o grid antigo apenas visualmente para encaixar o NPCs (Opcional)
+
+-- Correção de layout para o bloco NPC
+local NPCGrid = Instance.new("UIGridLayout")
+NPCGrid.CellSize = UDim2.new(0.33, -10, 0, 80)
+NPCGrid.CellPadding = UDim2.new(0, 10, 0, 10)
+NPCGrid.Parent = ContentArea
+
+local NPCTitle = Instance.new("TextLabel")
+NPCTitle.Size = UDim2.new(1, -30, 0, 20)
+NPCTitle.Position = UDim2.new(0, 15, 0, 10)
+NPCTitle.BackgroundTransparency = 1
+NPCTitle.Text = "NPCs - Gerencie os NPCs do mapa"
+NPCTitle.TextColor3 = Colors.Accent
+NPCTitle.Font = Enum.Font.GothamBold
+NPCTitle.TextSize = 14
+NPCTitle.TextXAlignment = Enum.TextXAlignment.Left
+NPCTitle.Parent = ContentArea
+
+CreateCard("ESP NPCs", "Mostra os NPCs no mapa.", "rbxassetid://10709798981", true, function(s) npcEspEnabled = s end)
+CreateCard("Auto Kill NPCs", "Mata os NPCs automaticamente.", "rbxassetid://10709798611", true, function(s) print("Kill NPCs", s) end)
+CreateCard("Teleporta NPCs", "Teleporta para um NPC específico.", "rbxassetid://10709798969", false, function() print("TP NPCs") end)
+
+-- Atualiza status de God Mode quando respawnar
+LocalPlayer.CharacterAdded:Connect(function(char)
+    task.wait(1)
+    if godEnabled then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.MaxHealth = math.huge
+            hum.Health = math.huge
+        end
+    end
+    if speedEnabled then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then hum.WalkSpeed = 50 end
+    end
+end)
+
+print("Interface Customizada [Bombeiros] carregada com sucesso!")
