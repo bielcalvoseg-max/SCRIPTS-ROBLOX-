@@ -1,23 +1,12 @@
--- ==================================================
--- SERVIÇOS E CONFIGURAÇÕES INICIAIS
--- ==================================================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
 local Workspace = workspace
-local Camera = Workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
--- Pega o nome e versão do Executor
 local execName, execVersion = "Desconhecido", "v1.0"
-pcall(function()
-    execName, execVersion = identifyexecutor()
-end)
+pcall(function() execName, execVersion = identifyexecutor() end)
 
--- ==================================================
--- CRIAÇÃO DA INTERFACE (UI CUSTOMIZADA)
--- ==================================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "BombeirosHub"
 ScreenGui.ResetOnSpawn = false
@@ -35,33 +24,29 @@ local Colors = {
     TextDim = Color3.fromRGB(160, 170, 190)
 }
 
--- Janela Principal
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 850, 0, 520)
-MainFrame.Position = UDim2.new(0.5, -425, 0.5, -260)
+MainFrame.Size = UDim2.new(0, 640, 0, 420)
+MainFrame.Position = UDim2.new(0.5, -320, 0.5, -210)
 MainFrame.BackgroundColor3 = Colors.Background
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.Parent = ScreenGui
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 local MainStroke = Instance.new("UIStroke")
 MainStroke.Color = Colors.Accent
 MainStroke.Thickness = 2
 MainStroke.Parent = MainFrame
 
--- ==================================================
--- TOP BAR (Cabeçalho)
--- ==================================================
 local TopBar = Instance.new("Frame")
 TopBar.Name = "TopBar"
-TopBar.Size = UDim2.new(1, 0, 0, 60)
+TopBar.Size = UDim2.new(1, 0, 0, 50)
 TopBar.BackgroundColor3 = Colors.Sidebar
 TopBar.BorderSizePixel = 0
 TopBar.Parent = MainFrame
-Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 8)
 
 local TopBarFix = Instance.new("Frame")
 TopBarFix.Size = UDim2.new(1, 0, 0, 15)
@@ -72,81 +57,74 @@ TopBarFix.Parent = TopBar
 
 local TitleText = Instance.new("TextLabel")
 TitleText.Size = UDim2.new(0, 200, 1, 0)
-TitleText.Position = UDim2.new(0, 20, 0, 0)
+TitleText.Position = UDim2.new(0, 15, 0, 0)
 TitleText.BackgroundTransparency = 1
 TitleText.Text = "BOMBEIROS"
 TitleText.TextColor3 = Colors.Text
 TitleText.Font = Enum.Font.GothamBlack
-TitleText.TextSize = 24
+TitleText.TextSize = 20
 TitleText.TextXAlignment = Enum.TextXAlignment.Left
 TitleText.Parent = TopBar
 
--- Botão Minimizar
 local MinBtn = Instance.new("TextButton")
 MinBtn.Size = UDim2.new(0, 30, 0, 30)
-MinBtn.Position = UDim2.new(1, -80, 0.5, -15)
+MinBtn.Position = UDim2.new(1, -70, 0.5, -15)
 MinBtn.BackgroundTransparency = 1
 MinBtn.Text = "—"
 MinBtn.TextColor3 = Colors.Text
 MinBtn.Font = Enum.Font.GothamBold
-MinBtn.TextSize = 20
+MinBtn.TextSize = 18
 MinBtn.Parent = TopBar
 
--- Botão Fechar
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.Position = UDim2.new(1, -40, 0.5, -15)
+CloseBtn.Position = UDim2.new(1, -35, 0.5, -15)
 CloseBtn.BackgroundTransparency = 1
 CloseBtn.Text = "✕"
 CloseBtn.TextColor3 = Colors.Text
 CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.TextSize = 20
+CloseBtn.TextSize = 18
 CloseBtn.Parent = TopBar
 
--- ==================================================
--- SIDEBAR (Menu Lateral Esquerdo)
--- ==================================================
 local Sidebar = Instance.new("Frame")
 Sidebar.Name = "Sidebar"
-Sidebar.Size = UDim2.new(0, 180, 1, -60)
-Sidebar.Position = UDim2.new(0, 0, 0, 60)
+Sidebar.Size = UDim2.new(0, 140, 1, -50)
+Sidebar.Position = UDim2.new(0, 0, 0, 50)
 Sidebar.BackgroundColor3 = Colors.Sidebar
 Sidebar.BorderSizePixel = 0
 Sidebar.Parent = MainFrame
 
 local ExecutorInfo = Instance.new("TextLabel")
-ExecutorInfo.Size = UDim2.new(1, -20, 0, 40)
-ExecutorInfo.Position = UDim2.new(0, 10, 1, -50)
+ExecutorInfo.Size = UDim2.new(1, -10, 0, 40)
+ExecutorInfo.Position = UDim2.new(0, 5, 1, -45)
 ExecutorInfo.BackgroundTransparency = 1
 ExecutorInfo.Text = "BOMBEIROS:\n" .. execName .. " " .. execVersion
 ExecutorInfo.TextColor3 = Colors.Accent
 ExecutorInfo.Font = Enum.Font.GothamBold
-ExecutorInfo.TextSize = 12
+ExecutorInfo.TextSize = 11
 ExecutorInfo.TextXAlignment = Enum.TextXAlignment.Center
 ExecutorInfo.Parent = Sidebar
 
--- Lógica de Abas
 local Tabs = {}
-local ActiveTab = nil
 local TabButtons = {}
 
 local function CreateTab(Name)
     local TabFrame = Instance.new("ScrollingFrame")
     TabFrame.Name = Name .. "Tab"
     TabFrame.Size = UDim2.new(1, -20, 1, -20)
-    TabFrame.Position = UDim2.new(0, 10, 0, 10)
+    TabFrame.Position = UDim2.new(0, 150, 0, 60)
     TabFrame.BackgroundTransparency = 1
     TabFrame.BorderSizePixel = 0
     TabFrame.ScrollBarThickness = 2
     TabFrame.ScrollBarImageColor3 = Colors.Accent
+    TabFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    TabFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
     TabFrame.Visible = false
     TabFrame.Parent = MainFrame
-    TabFrame.Position = UDim2.new(0, 190, 0, 70)
-    TabFrame.Size = UDim2.new(1, -200, 1, -80)
     
     local Layout = Instance.new("UIListLayout")
     Layout.SortOrder = Enum.SortOrder.LayoutOrder
-    Layout.Padding = UDim.new(0, 10)
+    Layout.Padding = UDim.new(0, 8)
     Layout.Parent = TabFrame
     
     Tabs[Name] = TabFrame
@@ -157,148 +135,120 @@ local function SwitchTab(TabName)
         frame.Visible = (name == TabName)
     end
     for name, btn in pairs(TabButtons) do
-        if name == TabName then
-            btn.BackgroundColor3 = Colors.Accent
-        else
-            btn.BackgroundColor3 = Colors.Sidebar
-        end
+        btn.BackgroundColor3 = (name == TabName) and Colors.Accent or Colors.Sidebar
     end
 end
 
-local function CreateSidebarButton(name, iconId, positionY)
+local function CreateSidebarButton(name, positionY)
     local Btn = Instance.new("TextButton")
-    Btn.Size = UDim2.new(1, -20, 0, 40)
-    Btn.Position = UDim2.new(0, 10, 0, positionY)
+    Btn.Size = UDim2.new(1, -10, 0, 32)
+    Btn.Position = UDim2.new(0, 5, 0, positionY)
     Btn.BackgroundColor3 = Colors.Sidebar
-    Btn.Text = ""
+    Btn.Text = name
+    Btn.TextColor3 = Colors.Text
+    Btn.Font = Enum.Font.GothamBold
+    Btn.TextSize = 12
     Btn.Parent = Sidebar
     Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 6)
     
-    local Icon = Instance.new("ImageLabel")
-    Icon.Size = UDim2.new(0, 20, 0, 20)
-    Icon.Position = UDim2.new(0, 10, 0.5, -10)
-    Icon.BackgroundTransparency = 1
-    Icon.Image = iconId
-    Icon.ImageColor3 = Colors.Text
-    Icon.Parent = Btn
-
-    local Txt = Instance.new("TextLabel")
-    Txt.Size = UDim2.new(1, -40, 1, 0)
-    Txt.Position = UDim2.new(0, 35, 0, 0)
-    Txt.BackgroundTransparency = 1
-    Txt.Text = name
-    Txt.TextColor3 = Colors.Text
-    Txt.Font = Enum.Font.GothamBold
-    Txt.TextSize = 13
-    Txt.TextXAlignment = Enum.TextXAlignment.Left
-    Txt.Parent = Btn
-
-    Btn.MouseButton1Click:Connect(function()
-        SwitchTab(name)
-    end)
-    
+    Btn.MouseButton1Click:Connect(function() SwitchTab(name) end)
     TabButtons[name] = Btn
     CreateTab(name)
 end
 
--- Criando as Abas
-CreateSidebarButton("Main", "rbxassetid://10709798940", 20)
-CreateSidebarButton("ESP", "rbxassetid://10709798981", 70)
-CreateSidebarButton("TP NPCs", "rbxassetid://10709798969", 120)
-CreateSidebarButton("Jogadores", "rbxassetid://10709798998", 170)
-CreateSidebarButton("Player", "rbxassetid://10709799024", 220)
+CreateSidebarButton("Main", 15)
+CreateSidebarButton("ESP", 52)
+CreateSidebarButton("TP NPCs", 89)
+CreateSidebarButton("Jogadores", 126)
+CreateSidebarButton("Player", 163)
 
--- ==================================================
--- COMPONENTES DA UI (Cards)
--- ==================================================
 local function CreateToggle(parent, title, desc, callback)
     local Card = Instance.new("TextButton")
-    Card.Size = UDim2.new(1, -10, 0, 60)
+    Card.Size = UDim2.new(1, -5, 0, 50)
     Card.BackgroundColor3 = Colors.Card
     Card.Text = ""
     Card.AutoButtonColor = false
     Card.Parent = parent
-    Instance.new("UICorner", Card).CornerRadius = UDim.new(0, 8)
+    Instance.new("UICorner", Card).CornerRadius = UDim.new(0, 6)
     
     local TitleLbl = Instance.new("TextLabel")
-    TitleLbl.Size = UDim2.new(1, -60, 0, 20)
-    TitleLbl.Position = UDim2.new(0, 15, 0, 10)
+    TitleLbl.Size = UDim2.new(1, -50, 0, 20)
+    TitleLbl.Position = UDim2.new(0, 10, 0, 8)
     TitleLbl.BackgroundTransparency = 1
     TitleLbl.Text = title
     TitleLbl.TextColor3 = Colors.Text
     TitleLbl.Font = Enum.Font.GothamBold
-    TitleLbl.TextSize = 14
+    TitleLbl.TextSize = 12
     TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
     TitleLbl.Parent = Card
 
     local DescLbl = Instance.new("TextLabel")
-    DescLbl.Size = UDim2.new(1, -60, 0, 20)
-    DescLbl.Position = UDim2.new(0, 15, 0, 30)
+    DescLbl.Size = UDim2.new(1, -50, 0, 20)
+    DescLbl.Position = UDim2.new(0, 10, 0, 24)
     DescLbl.BackgroundTransparency = 1
     DescLbl.Text = desc
     DescLbl.TextColor3 = Colors.TextDim
     DescLbl.Font = Enum.Font.Gotham
-    DescLbl.TextSize = 11
+    DescLbl.TextSize = 10
     DescLbl.TextXAlignment = Enum.TextXAlignment.Left
     DescLbl.Parent = Card
 
-    local ToggleBtn = Instance.new("TextButton")
-    ToggleBtn.Size = UDim2.new(0, 24, 0, 24)
-    ToggleBtn.Position = UDim2.new(1, -40, 0.5, -12)
-    ToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 35, 45)
-    ToggleBtn.Text = ""
-    ToggleBtn.Parent = Card
-    Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 4)
+    local ToggleBox = Instance.new("Frame")
+    ToggleBox.Size = UDim2.new(0, 20, 0, 20)
+    ToggleBox.Position = UDim2.new(1, -30, 0.5, -10)
+    ToggleBox.BackgroundColor3 = Color3.fromRGB(30, 35, 45)
+    ToggleBox.Parent = Card
+    Instance.new("UICorner", ToggleBox).CornerRadius = UDim.new(0, 4)
+    
     local Stroke = Instance.new("UIStroke")
     Stroke.Color = Colors.Accent
-    Stroke.Parent = ToggleBtn
+    Stroke.Parent = ToggleBox
     
-    local Check = Instance.new("ImageLabel")
-    Check.Size = UDim2.new(0, 16, 0, 16)
-    Check.Position = UDim2.new(0.5, -8, 0.5, -8)
-    Check.BackgroundTransparency = 1
-    Check.Image = "rbxassetid://10709798940"
-    Check.ImageColor3 = Colors.Accent
+    local Check = Instance.new("Frame")
+    Check.Size = UDim2.new(0, 12, 0, 12)
+    Check.Position = UDim2.new(0.5, -6, 0.5, -6)
+    Check.BackgroundColor3 = Colors.Accent
     Check.Visible = false
-    Check.Parent = ToggleBtn
+    Check.Parent = ToggleBox
+    Instance.new("UICorner", Check).CornerRadius = UDim.new(0, 2)
 
     local state = false
     Card.MouseButton1Click:Connect(function()
         state = not state
         Check.Visible = state
-        ToggleBtn.BackgroundColor3 = state and Color3.fromRGB(20, 40, 70) or Color3.fromRGB(30, 35, 45)
+        ToggleBox.BackgroundColor3 = state and Color3.fromRGB(20, 40, 70) or Color3.fromRGB(30, 35, 45)
         if callback then callback(state) end
     end)
 end
 
 local function CreateButton(parent, title, desc, callback)
     local Card = Instance.new("TextButton")
-    Card.Size = UDim2.new(1, -10, 0, 60)
+    Card.Size = UDim2.new(1, -5, 0, 50)
     Card.BackgroundColor3 = Colors.Card
     Card.Text = ""
     Card.AutoButtonColor = false
     Card.Parent = parent
-    Instance.new("UICorner", Card).CornerRadius = UDim.new(0, 8)
+    Instance.new("UICorner", Card).CornerRadius = UDim.new(0, 6)
     
     local TitleLbl = Instance.new("TextLabel")
     TitleLbl.Size = UDim2.new(1, -20, 0, 20)
-    TitleLbl.Position = UDim2.new(0, 15, 0, 10)
+    TitleLbl.Position = UDim2.new(0, 10, 0, 8)
     TitleLbl.BackgroundTransparency = 1
     TitleLbl.Text = title
     TitleLbl.TextColor3 = Colors.Text
     TitleLbl.Font = Enum.Font.GothamBold
-    TitleLbl.TextSize = 14
+    TitleLbl.TextSize = 12
     TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
     TitleLbl.Parent = Card
 
     local DescLbl = Instance.new("TextLabel")
     DescLbl.Size = UDim2.new(1, -20, 0, 20)
-    DescLbl.Position = UDim2.new(0, 15, 0, 30)
+    DescLbl.Position = UDim2.new(0, 10, 0, 24)
     DescLbl.BackgroundTransparency = 1
     DescLbl.Text = desc
     DescLbl.TextColor3 = Colors.TextDim
     DescLbl.Font = Enum.Font.Gotham
-    DescLbl.TextSize = 11
+    DescLbl.TextSize = 10
     DescLbl.TextXAlignment = Enum.TextXAlignment.Left
     DescLbl.Parent = Card
 
@@ -307,44 +257,46 @@ local function CreateButton(parent, title, desc, callback)
     Card.MouseButton1Click:Connect(function() if callback then callback() end end)
 end
 
--- Dropdown Simples Customizado
 local function CreateDropdown(parent, title, options, callback)
     local Card = Instance.new("TextButton")
-    Card.Size = UDim2.new(1, -10, 0, 60)
+    Card.Size = UDim2.new(1, -5, 0, 50)
     Card.BackgroundColor3 = Colors.Card
     Card.Text = ""
+    Card.AutoButtonColor = false
     Card.Parent = parent
-    Instance.new("UICorner", Card).CornerRadius = UDim.new(0, 8)
+    Instance.new("UICorner", Card).CornerRadius = UDim.new(0, 6)
     
     local TitleLbl = Instance.new("TextLabel")
     TitleLbl.Size = UDim2.new(1, -20, 0, 20)
-    TitleLbl.Position = UDim2.new(0, 15, 0, 10)
+    TitleLbl.Position = UDim2.new(0, 10, 0, 8)
     TitleLbl.BackgroundTransparency = 1
     TitleLbl.Text = title
     TitleLbl.TextColor3 = Colors.Text
     TitleLbl.Font = Enum.Font.GothamBold
-    TitleLbl.TextSize = 14
+    TitleLbl.TextSize = 12
     TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
     TitleLbl.Parent = Card
 
     local SelectedTxt = Instance.new("TextLabel")
-    SelectedTxt.Size = UDim2.new(1, -40, 0, 20)
-    SelectedTxt.Position = UDim2.new(0, 15, 0, 30)
+    SelectedTxt.Size = UDim2.new(1, -20, 0, 20)
+    SelectedTxt.Position = UDim2.new(0, 10, 0, 24)
     SelectedTxt.BackgroundTransparency = 1
-    SelectedTxt.Text = "Selecionar..."
+    SelectedTxt.Text = "Nenhum"
     SelectedTxt.TextColor3 = Colors.Accent
-    SelectedTxt.Font = Enum.Font.GothamBold
-    SelectedTxt.TextSize = 12
+    SelectedTxt.Font = Enum.Font.Gotham
+    SelectedTxt.TextSize = 11
     SelectedTxt.TextXAlignment = Enum.TextXAlignment.Left
     SelectedTxt.Parent = Card
 
     local ListFrame = Instance.new("ScrollingFrame")
-    ListFrame.Size = UDim2.new(1, 0, 0, 150)
-    ListFrame.Position = UDim2.new(0, 0, 1, 5)
+    ListFrame.Size = UDim2.new(1, -10, 0, 120)
+    ListFrame.Position = UDim2.new(0, 5, 0, 50)
     ListFrame.BackgroundColor3 = Colors.Sidebar
     ListFrame.Visible = false
-    ListFrame.ZIndex = 10
-    ListFrame.Parent = Card
+    ListFrame.ZIndex = 20
+    ListFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    ListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    ListFrame.Parent = parent
     Instance.new("UICorner", ListFrame).CornerRadius = UDim.new(0, 6)
     
     local ListLayout = Instance.new("UIListLayout")
@@ -362,13 +314,14 @@ local function CreateDropdown(parent, title, options, callback)
         end
         for _, opt in ipairs(newOptions) do
             local OptBtn = Instance.new("TextButton")
-            OptBtn.Size = UDim2.new(1, 0, 0, 30)
+            OptBtn.Size = UDim2.new(1, 0, 0, 24)
             OptBtn.BackgroundColor3 = Colors.Sidebar
             OptBtn.Text = "  " .. tostring(opt)
             OptBtn.TextColor3 = Colors.Text
             OptBtn.Font = Enum.Font.Gotham
-            OptBtn.TextSize = 12
+            OptBtn.TextSize = 11
             OptBtn.TextXAlignment = Enum.TextXAlignment.Left
+            OptBtn.ZIndex = 21
             OptBtn.Parent = ListFrame
             OptBtn.MouseButton1Click:Connect(function()
                 SelectedTxt.Text = tostring(opt)
@@ -382,14 +335,10 @@ local function CreateDropdown(parent, title, options, callback)
     return { Update = UpdateOptions }
 end
 
--- ==================================================
--- INICIALIZAÇÃO DO SCRIPT (Variáveis e Lógica)
--- ==================================================
 local noclip, infJump, instantPrompt = false, false, false
 local npcESP, godModeOn, shieldOn = false, false, false
 local walkSpeedValue = 16
 
--- [LÓGICA: NOCLIP]
 RunService.Stepped:Connect(function()
     if noclip and LocalPlayer.Character then
         for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
@@ -398,7 +347,6 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- [LÓGICA: JUMP INFINITO]
 UserInputService.JumpRequest:Connect(function()
     if infJump and LocalPlayer.Character then
         local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
@@ -406,15 +354,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- [LÓGICA: E INSTANTÂNEO]
-local function applyInstantPrompts()
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("ProximityPrompt") then obj.HoldDuration = 0 end
-    end
-end
-
--- [LÓGICA: NPC ESP E REGISTRO]
-local espObjects, npcRegistry, nameToNpc, npcCounter = {}, {}, {}, 0
+local espObjects, npcRegistry, nameToNpc = {}, {}, {}
 local npcDropdownReference
 
 local function updateNpcDropdown()
@@ -429,9 +369,18 @@ local function addESP(npc)
     if not npc:FindFirstChildOfClass("Humanoid") or not npc:FindFirstChild("Head") then return end
     if espObjects[npc] then return end
 
-    npcCounter = npcCounter + 1
-    local base = npc.Name
-    local displayName = string.format("%s #%02d", base, npcCounter)
+    local baseName = npc.Name
+    if npc:FindFirstChildOfClass("Humanoid").DisplayName ~= "" then
+        baseName = npc:FindFirstChildOfClass("Humanoid").DisplayName
+    end
+    
+    local displayName = baseName
+    local i = 1
+    while nameToNpc[displayName] do
+        i = i + 1
+        displayName = baseName .. " #" .. i
+    end
+    
     npcRegistry[npc] = displayName
     nameToNpc[displayName] = npc
 
@@ -459,40 +408,56 @@ local function addESP(npc)
     updateNpcDropdown()
 end
 
--- ==================================================
--- POPULANDO AS ABAS COM AS OPÇÕES
--- ==================================================
+local function removeESP(npc)
+    local data = espObjects[npc]
+    if data then
+        if data.hl then data.hl:Destroy() end
+        if data.gui then data.gui:Destroy() end
+        espObjects[npc] = nil
+    end
+    local name = npcRegistry[npc]
+    if name then
+        nameToNpc[name] = nil
+        npcRegistry[npc] = nil
+        updateNpcDropdown()
+    end
+end
 
--- ABA: MAIN
 CreateToggle(Tabs["Main"], "E Instantâneo", "Ativa prompts instantaneamente.", function(s)
     instantPrompt = s
-    if s then applyInstantPrompts() end
+    if s then
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if obj:IsA("ProximityPrompt") then obj.HoldDuration = 0 end
+        end
+    end
 end)
+
 CreateToggle(Tabs["Main"], "Jump Infinito", "Pule no ar sem limites.", function(s) infJump = s end)
 CreateToggle(Tabs["Main"], "No Clip", "Atravessa paredes.", function(s) noclip = s end)
 
--- ABA: ESP
 CreateToggle(Tabs["ESP"], "ESP de NPCs", "Mostra NPCs com nome e cor verde.", function(s)
     npcESP = s
     if s then
         for _, obj in ipairs(Workspace:GetDescendants()) do addESP(obj) end
     else
-        for npc, data in pairs(espObjects) do
-            data.hl:Destroy(); data.gui:Destroy()
-        end
+        for npc in pairs(espObjects) do removeESP(npc) end
         table.clear(espObjects); table.clear(nameToNpc); table.clear(npcRegistry)
-        npcCounter = 0; updateNpcDropdown()
     end
 end)
+
 Workspace.DescendantAdded:Connect(function(obj)
     if npcESP and obj:IsA("Model") then task.wait(0.2); addESP(obj) end
 end)
 
--- ABA: TP NPCs
+Workspace.DescendantRemoving:Connect(function(obj)
+    if espObjects[obj] then removeESP(obj) end
+end)
+
 local selectedNpc = nil
 npcDropdownReference = CreateDropdown(Tabs["TP NPCs"], "Selecionar NPC", {"Nenhum"}, function(opt)
     selectedNpc = (opt ~= "Nenhum") and nameToNpc[opt] or nil
 end)
+
 CreateButton(Tabs["TP NPCs"], "Teleportar até NPC", "Vai até o NPC selecionado.", function()
     if selectedNpc and selectedNpc.Parent then
         local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -500,6 +465,7 @@ CreateButton(Tabs["TP NPCs"], "Teleportar até NPC", "Vai até o NPC selecionado
         if root and tgt then root.CFrame = CFrame.new(tgt.Position + Vector3.new(0,3,4), tgt.Position) end
     end
 end)
+
 CreateButton(Tabs["TP NPCs"], "Puxar NPC até mim", "Traz o NPC para sua frente.", function()
     if selectedNpc and selectedNpc.Parent then
         local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -508,11 +474,11 @@ CreateButton(Tabs["TP NPCs"], "Puxar NPC até mim", "Traz o NPC para sua frente.
     end
 end)
 
--- ABA: JOGADORES
 local selectedPlayer = nil
 local playerDropdown = CreateDropdown(Tabs["Jogadores"], "Selecionar Jogador", {"Nenhum"}, function(opt)
     selectedPlayer = (opt ~= "Nenhum") and Players:FindFirstChild(opt) or nil
 end)
+
 local function getPlayersList()
     local list = {"Nenhum"}
     for _, p in ipairs(Players:GetPlayers()) do if p ~= LocalPlayer then table.insert(list, p.Name) end end
@@ -529,6 +495,7 @@ CreateButton(Tabs["Jogadores"], "Teleportar até Jogador", "Vai até o jogador s
         if root and tgt then root.CFrame = CFrame.new(tgt.Position + Vector3.new(0,3,4), tgt.Position) end
     end
 end)
+
 CreateButton(Tabs["Jogadores"], "Puxar Jogador até mim", "Traz o jogador selecionado.", function()
     if selectedPlayer and selectedPlayer.Character then
         local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -537,7 +504,6 @@ CreateButton(Tabs["Jogadores"], "Puxar Jogador até mim", "Traz o jogador seleci
     end
 end)
 
--- ABA: PLAYER
 CreateButton(Tabs["Player"], "Velocidade (Andar Rápido)", "Clique para alternar 16 / 50 WalkSpeed.", function()
     walkSpeedValue = (walkSpeedValue == 16) and 50 or 16
     local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
@@ -552,14 +518,17 @@ CreateToggle(Tabs["Player"], "God Mode", "Vida infinita.", function(s)
         hum.Health = hum.MaxHealth
     end
 end)
+
 LocalPlayer.CharacterAdded:Connect(function(char)
     task.wait(1)
-    if godModeOn then
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if hum then hum.MaxHealth = math.huge; hum.Health = math.huge end
-    end
     local hum = char:FindFirstChildOfClass("Humanoid")
-    if hum then hum.WalkSpeed = walkSpeedValue end
+    if hum then
+        hum.WalkSpeed = walkSpeedValue
+        if godModeOn then
+            hum.MaxHealth = math.huge
+            hum.Health = math.huge
+        end
+    end
 end)
 
 CreateToggle(Tabs["Player"], "Escudo", "Esfera protetora.", function(s)
@@ -568,7 +537,7 @@ CreateToggle(Tabs["Player"], "Escudo", "Esfera protetora.", function(s)
     if not char then return end
     if s then
         local root = char:FindFirstChild("HumanoidRootPart")
-        if root then
+        if root and not char:FindFirstChild("Player_Shield") then
             local shield = Instance.new("Part", char)
             shield.Shape = Enum.PartType.Ball; shield.Size = Vector3.new(10,10,10)
             shield.Material = Enum.Material.ForceField; shield.Color = Color3.fromRGB(90, 200, 255)
@@ -581,22 +550,19 @@ CreateToggle(Tabs["Player"], "Escudo", "Esfera protetora.", function(s)
     end
 end)
 
--- ==================================================
--- BOTÃO MINIMIZAR / RESTAURAR
--- ==================================================
-local IsMinimized = false
 local OpenBubble = Instance.new("TextButton")
-OpenBubble.Size = UDim2.new(0, 50, 0, 50)
-OpenBubble.Position = UDim2.new(0, 50, 0.5, -25)
+OpenBubble.Size = UDim2.new(0, 40, 0, 40)
+OpenBubble.Position = UDim2.new(0, 20, 0.5, -20)
 OpenBubble.BackgroundColor3 = Colors.Accent
 OpenBubble.Text = "B"
 OpenBubble.TextColor3 = Colors.Text
 OpenBubble.Font = Enum.Font.GothamBlack
-OpenBubble.TextSize = 24
+OpenBubble.TextSize = 20
 OpenBubble.Visible = false
+OpenBubble.Active = true
+OpenBubble.Draggable = true
 OpenBubble.Parent = ScreenGui
 Instance.new("UICorner", OpenBubble).CornerRadius = UDim.new(1, 0)
-OpenBubble.Draggable = true
 
 MinBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = false
@@ -612,7 +578,4 @@ CloseBtn.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
 end)
 
--- Define a aba inicial
 SwitchTab("Main")
-
-print("Interface [BOMBEIROS] carregada com sucesso! Executor: " .. execName .. " " .. execVersion)
